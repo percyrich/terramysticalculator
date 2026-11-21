@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://b8w64sdngsl1b"]
+
+[node name="TileChoice" type="Node2D" unique_id=1501954707]
+
+[node name="Tile" type="Sprite2D" parent="." unique_id=1418378193]
+
+[node name="OrderLabel" type="Label" parent="." unique_id=163106217]
+offset_right = 40.0
+offset_bottom = 23.0
+theme_override_font_sizes/font_size = 40

@@ -1,0 +1,402 @@
+[gd_scene format=3 uid="uid://cj3glsutridvd"]
+
+[ext_resource type="Script" uid="uid://cunb0buubtktj" path="res://scripts/Main/Main.cs" id="1_o5qli"]
+[ext_resource type="PackedScene" uid="uid://b5q6wj8jm8go8" path="res://scenes/player_panel.tscn" id="2_tbgi4"]
+[ext_resource type="Script" uid="uid://cf1sefstl2hx3" path="res://scripts/Board/MapView.cs" id="3_tefeu"]
+[ext_resource type="PackedScene" uid="uid://cyceadrdv74bb" path="res://scenes/priest_zone.tscn" id="4_o6xl0"]
+[ext_resource type="Script" uid="uid://ni5liwr03ssh" path="res://scripts/Board/ZoomableZone.cs" id="5_eb6dy"]
+[ext_resource type="PackedScene" uid="uid://dnbb3vy3i1rr5" path="res://scenes/track.tscn" id="5_tipki"]
+[ext_resource type="PackedScene" uid="uid://bx2a80tgl8jgg" path="res://scenes/power_action.tscn" id="8_eb6dy"]
+[ext_resource type="Script" uid="uid://by36jhljgd5jl" path="res://scripts/Parts/EvenlySpaced.cs" id="8_trceg"]
+[ext_resource type="PackedScene" uid="uid://b8w64sdngsl1b" path="res://scenes/tile_choice.tscn" id="9_85g3d"]
+[ext_resource type="Script" uid="uid://bo6siucvjnj2x" path="res://scripts/Board/ColourWheel.cs" id="11_eb6dy"]
+
+[node name="Main" type="Control" unique_id=325236698]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_o5qli")
+PriestZoneGap = 2.0
+BackgroundColour = Color(0.0073967203, 0.019152034, 0.09430643, 1)
+ShowBackgroundPicker = false
+FactionGridStep = Vector2(150, 330)
+FactionPortraitScale = 0.7
+ShuffleTransition = 7
+NeutralBankOffset = Vector2(1300, 250)
+
+[node name="TopPanelPlace" type="ReferenceRect" parent="." unique_id=1565168524]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 935.0
+offset_top = 2.0
+offset_right = 1767.0
+offset_bottom = 83.4
+
+[node name="Board" type="Node2D" parent="." unique_id=237324032]
+scale = Vector2(0.5, 0.5)
+
+[node name="PlayerPanel0" parent="Board" unique_id=117943814 instance=ExtResource("2_tbgi4")]
+unique_name_in_owner = true
+position = Vector2(6, 6)
+scale = Vector2(1.2, 1.2)
+
+[node name="PlayerPanel1" parent="Board" unique_id=1582034056 instance=ExtResource("2_tbgi4")]
+unique_name_in_owner = true
+position = Vector2(6, 724)
+scale = Vector2(1.2, 1.2)
+
+[node name="PlayerPanel2" parent="Board" unique_id=728935451 instance=ExtResource("2_tbgi4")]
+unique_name_in_owner = true
+position = Vector2(6, 1082)
+scale = Vector2(1.2, 1.2)
+
+[node name="PlayerPanel3" parent="Board" unique_id=1387369467 instance=ExtResource("2_tbgi4")]
+unique_name_in_owner = true
+position = Vector2(6, 1440)
+scale = Vector2(1.2, 1.2)
+
+[node name="PlayerPanel4" parent="Board" unique_id=958430126 instance=ExtResource("2_tbgi4")]
+unique_name_in_owner = true
+position = Vector2(6, 1798)
+scale = Vector2(1.2, 1.2)
+
+[node name="Map" type="Node2D" parent="Board" unique_id=1310517628]
+unique_name_in_owner = true
+position = Vector2(1934, 254)
+script = ExtResource("3_tefeu")
+CostIconSize = 80
+CostFontSize = 52
+CostOffset = Vector2(0, 0)
+
+[node name="FavourBank" type="Node2D" parent="Board" unique_id=2022381856]
+unique_name_in_owner = true
+position = Vector2(2970, 1560)
+script = ExtResource("8_trceg")
+Prefix = "Stack"
+Start = Vector2(-300, -150)
+Step = Vector2(240, 0)
+PerRow = 3
+RowStep = Vector2(0, 140)
+ColumnsFirst = true
+Preview = 2
+
+[node name="Stack0" type="Marker2D" parent="Board/FavourBank" unique_id=220311552]
+position = Vector2(-300, -150)
+scale = Vector2(1.3, 1.3)
+
+[node name="Stack1" type="Marker2D" parent="Board/FavourBank" unique_id=2905597]
+position = Vector2(-300, -10)
+scale = Vector2(1.3, 1.3)
+
+[node name="Stack2" type="Marker2D" parent="Board/FavourBank" unique_id=1340922267]
+position = Vector2(-300, 130)
+scale = Vector2(1.3, 1.3)
+
+[node name="Stack3" type="Marker2D" parent="Board/FavourBank" unique_id=133862318]
+position = Vector2(-60, -150)
+scale = Vector2(1.3, 1.3)
+
+[node name="Stack4" type="Marker2D" parent="Board/FavourBank" unique_id=1728173574]
+position = Vector2(-60, -10)
+scale = Vector2(1.3, 1.3)
+
+[node name="Stack5" type="Marker2D" parent="Board/FavourBank" unique_id=141437144]
+position = Vector2(-60, 130)
+scale = Vector2(1.3, 1.3)
+
+[node name="Stack6" type="Marker2D" parent="Board/FavourBank" unique_id=1061166101]
+position = Vector2(180, -150)
+scale = Vector2(1.3, 1.3)
+
+[node name="Stack7" type="Marker2D" parent="Board/FavourBank" unique_id=2130865087]
+position = Vector2(180, -10)
+scale = Vector2(1.3, 1.3)
+
+[node name="Stack8" type="Marker2D" parent="Board/FavourBank" unique_id=2117801385]
+position = Vector2(180, 130)
+scale = Vector2(1.3, 1.3)
+
+[node name="Stack9" type="Marker2D" parent="Board/FavourBank" unique_id=1156870468]
+position = Vector2(420, -150)
+scale = Vector2(1.3, 1.3)
+
+[node name="Stack10" type="Marker2D" parent="Board/FavourBank" unique_id=1448847825]
+position = Vector2(420, -10)
+scale = Vector2(1.3, 1.3)
+
+[node name="Stack11" type="Marker2D" parent="Board/FavourBank" unique_id=1099536984]
+position = Vector2(420, 130)
+scale = Vector2(1.3, 1.3)
+
+[node name="RoundTiles" type="Node2D" parent="Board" unique_id=916968761]
+unique_name_in_owner = true
+position = Vector2(3696, 334)
+scale = Vector2(1.4, 1.4)
+script = ExtResource("8_trceg")
+Prefix = "Round"
+Start = Vector2(0, 525)
+Step = Vector2(0, -105)
+Preview = 1
+
+[node name="Round1" type="Marker2D" parent="Board/RoundTiles" unique_id=1399814212]
+position = Vector2(0, 525)
+
+[node name="Round2" type="Marker2D" parent="Board/RoundTiles" unique_id=199072340]
+position = Vector2(0, 420)
+
+[node name="Round3" type="Marker2D" parent="Board/RoundTiles" unique_id=1926569263]
+position = Vector2(0, 315)
+
+[node name="Round4" type="Marker2D" parent="Board/RoundTiles" unique_id=1037698252]
+position = Vector2(0, 210)
+
+[node name="Round5" type="Marker2D" parent="Board/RoundTiles" unique_id=474154544]
+position = Vector2(0, 105)
+
+[node name="Round6" type="Marker2D" parent="Board/RoundTiles" unique_id=1706101198]
+
+[node name="FinalScoring" type="Marker2D" parent="Board/RoundTiles" unique_id=518942382]
+unique_name_in_owner = true
+position = Vector2(0, -105)
+
+[node name="PowerActions" type="Node2D" parent="Board" unique_id=1245599588]
+unique_name_in_owner = true
+position = Vector2(2002, 1276)
+script = ExtResource("8_trceg")
+Prefix = "Action"
+Step = Vector2(280, 0)
+
+[node name="Action0" parent="Board/PowerActions" unique_id=338331728 instance=ExtResource("8_eb6dy")]
+
+[node name="Action1" parent="Board/PowerActions" unique_id=1388620302 instance=ExtResource("8_eb6dy")]
+position = Vector2(280, 0)
+
+[node name="Action2" parent="Board/PowerActions" unique_id=1180591171 instance=ExtResource("8_eb6dy")]
+position = Vector2(560, 0)
+
+[node name="Action3" parent="Board/PowerActions" unique_id=812185871 instance=ExtResource("8_eb6dy")]
+position = Vector2(840, 0)
+
+[node name="Action4" parent="Board/PowerActions" unique_id=2053221800 instance=ExtResource("8_eb6dy")]
+position = Vector2(1120, 0)
+
+[node name="Action5" parent="Board/PowerActions" unique_id=416424818 instance=ExtResource("8_eb6dy")]
+position = Vector2(1400, 0)
+
+[node name="KeyBank" type="Node2D" parent="Board" unique_id=1068303832]
+unique_name_in_owner = true
+position = Vector2(3620, 1226)
+script = ExtResource("8_trceg")
+Prefix = "Stack"
+Step = Vector2(140, 0)
+PerRow = 2
+RowStep = Vector2(0, 160)
+Preview = 3
+
+[node name="Stack0" type="Marker2D" parent="Board/KeyBank" unique_id=1159238295]
+
+[node name="Stack1" type="Marker2D" parent="Board/KeyBank" unique_id=1307390994]
+position = Vector2(140, 0)
+
+[node name="Stack2" type="Marker2D" parent="Board/KeyBank" unique_id=999915670]
+position = Vector2(0, 160)
+
+[node name="Stack3" type="Marker2D" parent="Board/KeyBank" unique_id=996869310]
+position = Vector2(140, 160)
+
+[node name="Stack4" type="Marker2D" parent="Board/KeyBank" unique_id=318740104]
+position = Vector2(0, 320)
+
+[node name="Stack5" type="Marker2D" parent="Board/KeyBank" unique_id=280559423]
+position = Vector2(140, 320)
+
+[node name="Stack6" type="Marker2D" parent="Board/KeyBank" unique_id=2067246697]
+position = Vector2(0, 480)
+
+[node name="Stack7" type="Marker2D" parent="Board/KeyBank" unique_id=1866597847]
+position = Vector2(140, 480)
+
+[node name="PassTileBank" type="Node2D" parent="Board" unique_id=299643147]
+unique_name_in_owner = true
+position = Vector2(2694, 1968)
+script = ExtResource("8_trceg")
+Prefix = "Slot"
+Step = Vector2(120, 0)
+Preview = 4
+
+[node name="Slot0" type="Marker2D" parent="Board/PassTileBank" unique_id=110610293]
+
+[node name="Slot1" type="Marker2D" parent="Board/PassTileBank" unique_id=1837703738]
+position = Vector2(120, 0)
+
+[node name="Slot2" type="Marker2D" parent="Board/PassTileBank" unique_id=2046467484]
+position = Vector2(240, 0)
+
+[node name="Slot3" type="Marker2D" parent="Board/PassTileBank" unique_id=440514450]
+position = Vector2(360, 0)
+
+[node name="Slot4" type="Marker2D" parent="Board/PassTileBank" unique_id=470539016]
+position = Vector2(480, 0)
+
+[node name="Slot5" type="Marker2D" parent="Board/PassTileBank" unique_id=1375047315]
+position = Vector2(600, 0)
+
+[node name="Slot6" type="Marker2D" parent="Board/PassTileBank" unique_id=1679428350]
+position = Vector2(720, 0)
+
+[node name="Slot7" type="Marker2D" parent="Board/PassTileBank" unique_id=1328538620]
+position = Vector2(840, 0)
+
+[node name="Slot8" type="Marker2D" parent="Board/PassTileBank" unique_id=1450949157]
+position = Vector2(960, 0)
+
+[node name="Slot9" type="Marker2D" parent="Board/PassTileBank" unique_id=1114764803]
+position = Vector2(1080, 0)
+
+[node name="Tracks" type="Node2D" parent="Board" unique_id=1249345490]
+unique_name_in_owner = true
+position = Vector2(1978, 1578)
+scale = Vector2(1.2, 1.2)
+
+[node name="Fire" parent="Board/Tracks" unique_id=1712708292 instance=ExtResource("5_tipki")]
+
+[node name="Water" parent="Board/Tracks" unique_id=1750891019 instance=ExtResource("5_tipki")]
+position = Vector2(130, 0)
+
+[node name="Earth" parent="Board/Tracks" unique_id=1907552325 instance=ExtResource("5_tipki")]
+position = Vector2(260, 0)
+
+[node name="Air" parent="Board/Tracks" unique_id=678609560 instance=ExtResource("5_tipki")]
+position = Vector2(390, 0)
+
+[node name="PriestZones" type="Node2D" parent="Board" unique_id=20849480]
+unique_name_in_owner = true
+position = Vector2(1486, 1936)
+scale = Vector2(1.2, 1.2)
+script = ExtResource("5_eb6dy")
+SmallScale = 0.35
+
+[node name="Fire" parent="Board/PriestZones" unique_id=912319497 instance=ExtResource("4_o6xl0")]
+
+[node name="Water" parent="Board/PriestZones" unique_id=19691449 instance=ExtResource("4_o6xl0")]
+position = Vector2(300, 0)
+
+[node name="Earth" parent="Board/PriestZones" unique_id=484329813 instance=ExtResource("4_o6xl0")]
+position = Vector2(600, 0)
+
+[node name="Air" parent="Board/PriestZones" unique_id=225705838 instance=ExtResource("4_o6xl0")]
+position = Vector2(900, 0)
+
+[node name="Corner" type="Marker2D" parent="Board/PriestZones" unique_id=821353360]
+position = Vector2(1007, -141)
+
+[node name="Pieces" type="Node2D" parent="Board" unique_id=1999509980]
+unique_name_in_owner = true
+
+[node name="ColourWheel" type="Node2D" parent="Board" unique_id=1892753682]
+unique_name_in_owner = true
+z_index = 90
+script = ExtResource("11_eb6dy")
+metadata/_custom_type_script = "uid://bo6siucvjnj2x"
+
+[node name="FactionSelect" type="Node2D" parent="." unique_id=1253171887]
+unique_name_in_owner = true
+visible = false
+position = Vector2(960, 500)
+
+[node name="GameSelect" type="Control" parent="." unique_id=658331676]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="MapSelect" type="Control" parent="." unique_id=1195855334]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="RoundTileSelect" type="Node2D" parent="." unique_id=81386747]
+unique_name_in_owner = true
+visible = false
+position = Vector2(750, 400)
+script = ExtResource("8_trceg")
+Prefix = "Tile"
+Step = Vector2(250, 0)
+PerRow = 3
+RowStep = Vector2(0, 150)
+
+[node name="Tile0" parent="RoundTileSelect" unique_id=1501954707 instance=ExtResource("9_85g3d")]
+
+[node name="Tile1" parent="RoundTileSelect" unique_id=1870197331 instance=ExtResource("9_85g3d")]
+position = Vector2(250, 0)
+
+[node name="Tile2" parent="RoundTileSelect" unique_id=215593483 instance=ExtResource("9_85g3d")]
+position = Vector2(500, 0)
+
+[node name="Tile3" parent="RoundTileSelect" unique_id=965755023 instance=ExtResource("9_85g3d")]
+position = Vector2(0, 150)
+
+[node name="Tile4" parent="RoundTileSelect" unique_id=394022383 instance=ExtResource("9_85g3d")]
+position = Vector2(250, 150)
+
+[node name="Tile5" parent="RoundTileSelect" unique_id=278442792 instance=ExtResource("9_85g3d")]
+position = Vector2(500, 150)
+
+[node name="Tile6" parent="RoundTileSelect" unique_id=48863219 instance=ExtResource("9_85g3d")]
+position = Vector2(0, 300)
+
+[node name="Tile7" parent="RoundTileSelect" unique_id=883194766 instance=ExtResource("9_85g3d")]
+position = Vector2(250, 300)
+
+[node name="Tile8" parent="RoundTileSelect" unique_id=700928008 instance=ExtResource("9_85g3d")]
+position = Vector2(500, 300)
+
+[node name="PassTileSelect" type="Node2D" parent="." unique_id=784070227]
+unique_name_in_owner = true
+visible = false
+position = Vector2(500, 400)
+
+[node name="Tile0" parent="PassTileSelect" unique_id=1289211641 instance=ExtResource("9_85g3d")]
+scale = Vector2(0.8, 0.8)
+
+[node name="Tile1" parent="PassTileSelect" unique_id=1142311424 instance=ExtResource("9_85g3d")]
+position = Vector2(100, 0)
+scale = Vector2(0.8, 0.8)
+
+[node name="Tile2" parent="PassTileSelect" unique_id=1530650913 instance=ExtResource("9_85g3d")]
+position = Vector2(200, 0)
+scale = Vector2(0.8, 0.8)
+
+[node name="Tile3" parent="PassTileSelect" unique_id=1131622579 instance=ExtResource("9_85g3d")]
+position = Vector2(300, 0)
+scale = Vector2(0.8, 0.8)
+
+[node name="Tile4" parent="PassTileSelect" unique_id=1540649248 instance=ExtResource("9_85g3d")]
+position = Vector2(400, 0)
+scale = Vector2(0.8, 0.8)
+
+[node name="Tile5" parent="PassTileSelect" unique_id=1192767449 instance=ExtResource("9_85g3d")]
+position = Vector2(500, 0)
+scale = Vector2(0.8, 0.8)
+
+[node name="Tile6" parent="PassTileSelect" unique_id=1925459281 instance=ExtResource("9_85g3d")]
+position = Vector2(600, 0)
+scale = Vector2(0.8, 0.8)
+
+[node name="Tile7" parent="PassTileSelect" unique_id=1739694395 instance=ExtResource("9_85g3d")]
+position = Vector2(700, 0)
+scale = Vector2(0.8, 0.8)
+
+[node name="Tile8" parent="PassTileSelect" unique_id=367322531 instance=ExtResource("9_85g3d")]
+position = Vector2(800, 0)
+scale = Vector2(0.8, 0.8)
+
+[node name="Tile9" parent="PassTileSelect" unique_id=1952268244 instance=ExtResource("9_85g3d")]
+position = Vector2(900, 0)
+scale = Vector2(0.8, 0.8)

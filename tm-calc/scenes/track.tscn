@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://dnbb3vy3i1rr5"]
+
+[ext_resource type="Script" uid="uid://b8y6k5wr61y84" path="res://scripts/Board/CultTrackView.cs" id="1_s1rm4"]
+
+[node name="Track" type="Sprite2D" unique_id=1712708292]
+script = ExtResource("1_s1rm4")
+Prefix = "Step"
+Start = Vector2(0, 180)
+Step = Vector2(0, -36)
+
+[node name="Step0" type="Marker2D" parent="." unique_id=1361495838]
+position = Vector2(0, 180)
+
+[node name="Step1" type="Marker2D" parent="." unique_id=1339790684]
+position = Vector2(0, 144)
+
+[node name="Step2" type="Marker2D" parent="." unique_id=537656780]
+position = Vector2(0, 108)
+
+[node name="Step3" type="Marker2D" parent="." unique_id=1940869695]
+position = Vector2(0, 72)
+
+[node name="Step4" type="Marker2D" parent="." unique_id=859744116]
+position = Vector2(0, 36)
+
+[node name="Step5" type="Marker2D" parent="." unique_id=607447406]
+
+[node name="Step6" type="Marker2D" parent="." unique_id=187168254]
+position = Vector2(0, -36)
+
+[node name="Step7" type="Marker2D" parent="." unique_id=1642442024]
+position = Vector2(0, -72)
+
+[node name="Step8" type="Marker2D" parent="." unique_id=1221420893]
+position = Vector2(0, -108)
+
+[node name="Step9" type="Marker2D" parent="." unique_id=1181705809]
+position = Vector2(0, -144)
+
+[node name="Step10" type="Marker2D" parent="." unique_id=1020987874]
+position = Vector2(0, -180)

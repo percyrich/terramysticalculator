@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://cvc8t8nseecho"]
+
+[ext_resource type="Script" uid="uid://dst7cfii0pp6n" path="res://scripts/Tiles/TriggerView.cs" id="1_xh6i1"]
+[ext_resource type="Script" uid="uid://cox6dvgaf83k8" path="res://scripts/Parts/ResourceBundle.cs" id="2_727f2"]
+[ext_resource type="Script" uid="uid://b2hbkc0kd4l6n" path="res://scripts/Parts/IconSprite.cs" id="3_xh6i1"]
+
+[node name="Trigger" type="Node2D" unique_id=922613482]
+script = ExtResource("1_xh6i1")
+metadata/_custom_type_script = "uid://dst7cfii0pp6n"
+
+[node name="Trigger" type="Node2D" parent="." unique_id=290918798]
+position = Vector2(-32, 0)
+script = ExtResource("2_727f2")
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="Separator" type="Sprite2D" parent="." unique_id=1232417399]
+script = ExtResource("3_xh6i1")
+Icon = 18
+IconSize = 64
+metadata/_custom_type_script = "uid://b2hbkc0kd4l6n"
+
+[node name="Reward" type="Node2D" parent="." unique_id=834524597]
+position = Vector2(28, 0)
+script = ExtResource("2_727f2")
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"

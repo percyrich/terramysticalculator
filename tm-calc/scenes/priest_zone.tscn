@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://cyceadrdv74bb"]
+
+[ext_resource type="Script" uid="uid://cvopa8mc3of2u" path="res://scripts/Board/PriestZoneView.cs" id="1_hqe3h"]
+[ext_resource type="PackedScene" uid="uid://2vtcgyqcyoxv" path="res://scenes/priest_slot.tscn" id="2_gw8od"]
+
+[node name="PriestZone" type="Sprite2D" unique_id=912319497]
+script = ExtResource("1_hqe3h")
+
+[node name="Slot0" parent="." unique_id=1688963931 instance=ExtResource("2_gw8od")]
+position = Vector2(-70, -70)
+
+[node name="Slot1" parent="." unique_id=2124365396 instance=ExtResource("2_gw8od")]
+position = Vector2(70, -70)
+
+[node name="Slot2" parent="." unique_id=2056248505 instance=ExtResource("2_gw8od")]
+position = Vector2(-70, 70)
+
+[node name="Slot3" parent="." unique_id=1051116319 instance=ExtResource("2_gw8od")]
+position = Vector2(70, 70)
+
+[node name="Slot4" parent="." unique_id=57421491 instance=ExtResource("2_gw8od")]
+position = Vector2(0, 200)

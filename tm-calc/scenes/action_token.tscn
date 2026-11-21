@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://dbssh7qh5c1u"]
+
+[ext_resource type="Script" uid="uid://bbqwflcje8hx" path="res://scripts/Tiles/ActionToken.cs" id="1_nsieu"]
+[ext_resource type="Script" uid="uid://b2hbkc0kd4l6n" path="res://scripts/Parts/IconSprite.cs" id="2_oxlpn"]
+[ext_resource type="Script" uid="uid://cox6dvgaf83k8" path="res://scripts/Parts/ResourceBundle.cs" id="3_d4hkd"]
+
+[node name="ActionToken" type="Node2D" unique_id=819198683]
+script = ExtResource("1_nsieu")
+
+[node name="Octagon" type="Sprite2D" parent="." unique_id=1993223520]
+script = ExtResource("2_oxlpn")
+Icon = 16
+IconSize = 80
+metadata/_custom_type_script = "uid://b2hbkc0kd4l6n"
+
+[node name="Content" type="Node2D" parent="." unique_id=254205501]
+script = ExtResource("3_d4hkd")
+Centred = true
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="Icon" type="Sprite2D" parent="." unique_id=742128489]
+
+[node name="Used" type="Sprite2D" parent="." unique_id=1245110748]
+visible = false
+script = ExtResource("2_oxlpn")
+Icon = 17
+IconSize = 80
+metadata/_custom_type_script = "uid://b2hbkc0kd4l6n"

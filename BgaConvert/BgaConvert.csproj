@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The BGA import as a library: reads a Board Game Arena Terra Mystica export (the TM Export bookmarklet's file) and
+       converts it into Core's History, move by move through Core's rules. Used by the app (Load BGA JSON) and by the
+       console tool BgaImport (batch runs, reports, traces). net8.0 like Core, so the Godot project can reference it. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BgaImport</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The bookmarklet the app shows (BgaImport\bookmarklet.min.txt, kept beside its readable source). -->
+    <EmbeddedResource Include="..\BgaImport\bookmarklet.min.txt" LogicalName="bookmarklet.min.txt" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,63 @@
+[gd_scene format=3 uid="uid://ber2doen8e235"]
+
+[ext_resource type="Script" uid="uid://jw06f1ugsnog" path="res://scripts/Tiles/RoundTileView.cs" id="1_w8mcf"]
+[ext_resource type="Script" uid="uid://d1q4o8kkhaspd" path="res://scripts/Tiles/BlankTileSprite.cs" id="2_w8mcf"]
+[ext_resource type="PackedScene" uid="uid://cvc8t8nseecho" path="res://scenes/trigger.tscn" id="3_72qle"]
+
+[node name="RoundTile" type="Node2D" unique_id=1897819415]
+script = ExtResource("1_w8mcf")
+PreviewTile = 8
+metadata/_custom_type_script = "uid://jw06f1ugsnog"
+
+[node name="Background" type="Sprite2D" parent="." unique_id=1322528575]
+script = ExtResource("2_w8mcf")
+TileScale = 0.64
+metadata/_custom_type_script = "uid://d1q4o8kkhaspd"
+
+[node name="Scoring" parent="." unique_id=922613482 instance=ExtResource("3_72qle")]
+position = Vector2(-51, 0)
+scale = Vector2(0.6, 0.6)
+Gap = 1.0
+FixedSeparatorAndReward = true
+
+[node name="Trigger" parent="Scoring" index="0" unique_id=290918798]
+position = Vector2(-33.566666, 0)
+IconSize = 96
+IconScales = "spades 0.7, key 0.85"
+
+[node name="Separator" parent="Scoring" index="1" unique_id=1232417399]
+position = Vector2(8.333334, 0)
+scale = Vector2(0.6, 0.6)
+
+[node name="Reward" parent="Scoring" index="2" unique_id=834524597]
+position = Vector2(46.666664, 0)
+IconSize = 64
+FontSize = 48
+
+[node name="EndOfRound" parent="." unique_id=1218579861 instance=ExtResource("3_72qle")]
+position = Vector2(38, 0)
+scale = Vector2(0.5, 0.5)
+FixedSeparatorAndReward = true
+
+[node name="Trigger" parent="EndOfRound" index="0" unique_id=290918798]
+position = Vector2(-36, 0)
+IconSize = 36
+IconScales = "priest on a track 1.8"
+Vertical = true
+Spacing = 100.0
+RepeatSpacing = 40.0
+Centred = true
+
+[node name="Separator" parent="EndOfRound" index="1" unique_id=1232417399]
+position = Vector2(14, 0)
+scale = Vector2(1, 2.2)
+Icon = 32
+
+[node name="Reward" parent="EndOfRound" index="2" unique_id=834524597]
+position = Vector2(64, 0)
+IncomeIcons = true
+IconSize = 60
+IconScales = "spade 1.3"
+
+[editable path="Scoring"]
+[editable path="EndOfRound"]

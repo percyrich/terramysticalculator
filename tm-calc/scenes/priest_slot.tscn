@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://2vtcgyqcyoxv"]
+
+[node name="PriestSlot" type="Marker2D" unique_id=1688963931]
+
+[node name="StepLabel" type="Label" parent="." unique_id=525711482]
+offset_left = -12.0
+offset_top = -30.0
+offset_right = -12.0
+offset_bottom = -30.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 48

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Converts a Board Game Arena Terra Mystica game (move log + game data) into a .tmcalc save, replaying every move
+       through Core's rules and checking each step against BGA's own counts. See README.md. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- net10.0 like Core.Tests: the installed runtime. Core itself stays net8.0. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BgaImport</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Core.csproj" />
+    <!-- The converter itself (shared with the app). -->
+    <ProjectReference Include="..\BgaConvert\BgaConvert.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The sample game and the output folder are data, not code. -->
+    <None Remove="samples\**" />
+    <None Remove="out\**" />
+  </ItemGroup>
+
+</Project>

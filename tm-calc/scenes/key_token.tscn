@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://iks32tdaaea"]
+
+[ext_resource type="Script" uid="uid://ciml3e73oh7c5" path="res://scripts/Tiles/KeyTileView.cs" id="1_wqt6j"]
+[ext_resource type="Script" uid="uid://d1q4o8kkhaspd" path="res://scripts/Tiles/BlankTileSprite.cs" id="2_i3dg6"]
+[ext_resource type="Script" uid="uid://cox6dvgaf83k8" path="res://scripts/Parts/ResourceBundle.cs" id="3_rcgwa"]
+
+[node name="KeyToken" type="Node2D" unique_id=2015162125]
+script = ExtResource("1_wqt6j")
+PreviewTile = 6
+metadata/_custom_type_script = "uid://ciml3e73oh7c5"
+
+[node name="Background" type="Sprite2D" parent="." unique_id=32199211]
+script = ExtResource("2_i3dg6")
+Tile = 2
+TileScale = 0.83
+metadata/_custom_type_script = "uid://d1q4o8kkhaspd"
+
+[node name="Points" type="Node2D" parent="." unique_id=1322053947]
+position = Vector2(0, -30)
+script = ExtResource("3_rcgwa")
+CountOffset = Vector2(0, -1)
+FontSize = 30
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="Reward" type="Node2D" parent="." unique_id=495487015]
+visible = false
+position = Vector2(0, 32)
+script = ExtResource("3_rcgwa")
+IconSize = 52
+IconScales = "shipping 0.9, step on every track 1.1"
+FontSize = 32
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="Keys" type="Node2D" parent="." unique_id=848145511]
+rotation = 0.7853982
+script = ExtResource("3_rcgwa")
+RepeatIcons = true
+IconSize = 64
+Step = Vector2(25, -25)
+RepeatSpacing = 45.0
+Centred = true
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"

@@ -1,0 +1,18 @@
+# .NET build output
+bin/
+obj/
+# Godot editor cache
+.godot/
+# IDE clutter
+.vs/
+*.user
+# Output of run-tests.bat
+test-results.txt
+# Output of run-bga-import.bat
+bga-import-results.txt
+BgaImport/out/
+# Godot export output (export_presets.cfg writes it into tm-calc)
+tm-calc/TMCalc.exe
+tm-calc/TMCalc.console.exe
+tm-calc/TMCalc.pck
+tm-calc/data_TMCalc_windows_x86_64/

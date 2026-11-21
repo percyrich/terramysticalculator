@@ -1,0 +1,358 @@
+[gd_scene format=3 uid="uid://b5q6wj8jm8go8"]
+
+[ext_resource type="Script" uid="uid://dbiseeb2xv8nv" path="res://scripts/PlayerPanel/PlayerPanel.cs" id="1_kuknk"]
+[ext_resource type="Script" uid="uid://b0c8k625w1q1b" path="res://scripts/PlayerPanel/BackingSprite.cs" id="2_v2u8l"]
+[ext_resource type="Texture2D" uid="uid://c5cxc0wdjmopa" path="res://sprites/prototype/portrait_giants.png" id="3_ct12v"]
+[ext_resource type="Script" uid="uid://dw17e1lvacedg" path="res://scripts/PlayerPanel/CompactLayout.cs" id="3_gn5j6"]
+[ext_resource type="Script" uid="uid://c4v3gwjkykyi1" path="res://scripts/PlayerPanel/PowerBowlsView.cs" id="9_v2u8l"]
+[ext_resource type="Script" uid="uid://cox6dvgaf83k8" path="res://scripts/Parts/ResourceBundle.cs" id="10_64bmn"]
+[ext_resource type="Script" uid="uid://ctn70tl2kmxh0" path="res://scripts/PlayerPanel/BuildingBoard.cs" id="10_n4ljo"]
+[ext_resource type="Script" uid="uid://ci3ruigc25hl" path="res://scripts/PlayerPanel/PlayerButton.cs" id="10_xs7ou"]
+[ext_resource type="Script" uid="uid://b2hbkc0kd4l6n" path="res://scripts/Parts/IconSprite.cs" id="14_x2xf3"]
+
+[node name="PlayerPanel" type="Node2D" unique_id=117943814]
+script = ExtResource("1_kuknk")
+PreviewFaction = 39
+BridgeSpacing = 26.0
+BonusActionStep = Vector2(70, 0)
+CompactGroupSpacing = 60.0
+PriestExchangeArea = Rect2(-135, -85, 225, 63)
+TunnelIconSize = 36
+CarpetIconSize = 46
+SideCostIconSize = 52
+SideCostFontSize = 40
+BookBelowIconSize = 26
+BookBelowFontSize = 22
+BookBelowSpacing = 30.0
+SafeOfferOffset = Vector2(0, -70)
+SafeOfferIconSize = 34
+SafeAllOffset = Vector2(0, 62)
+TerrainBadgeScale = 0.8
+TerrainWheelOpenScale = 0.6
+ScoreTotalGap = 0.0
+ScoreBadgeZIndex = 40
+
+[node name="Background" type="Sprite2D" parent="." unique_id=1246987191]
+centered = false
+script = ExtResource("2_v2u8l")
+PreviewTerrain = 7
+
+[node name="CompactLayout" type="Node2D" parent="." unique_id=880074140]
+script = ExtResource("3_gn5j6")
+AlwaysShown = PackedStringArray("BridgeSupply", "PlayerButton")
+metadata/_custom_type_script = "uid://dw17e1lvacedg"
+
+[node name="CompactBackground" type="Sprite2D" parent="CompactLayout" unique_id=360724686]
+centered = false
+script = ExtResource("2_v2u8l")
+Compact = true
+PreviewTerrain = 7
+
+[node name="Portrait" type="Marker2D" parent="CompactLayout" unique_id=1138415407]
+position = Vector2(132, 90)
+
+[node name="Resources" type="Marker2D" parent="CompactLayout" unique_id=1749268040]
+position = Vector2(460, 90)
+
+[node name="PowerBank" type="Marker2D" parent="CompactLayout" unique_id=1301227775]
+position = Vector2(758, 84)
+scale = Vector2(0.8, 0.8)
+
+[node name="ReachIcon" type="Marker2D" parent="CompactLayout" unique_id=1705597597]
+position = Vector2(274, 221)
+
+[node name="ReachNumber" type="Marker2D" parent="CompactLayout" unique_id=1463668705]
+position = Vector2(324, 218)
+
+[node name="Shipping" type="Marker2D" parent="CompactLayout" unique_id=255345968]
+position = Vector2(279, 217)
+
+[node name="Spades" type="Marker2D" parent="CompactLayout" unique_id=120375816]
+position = Vector2(428, 292)
+
+[node name="Favours" type="Marker2D" parent="CompactLayout" unique_id=1571077041]
+position = Vector2(1291, 58.000004)
+scale = Vector2(0.75, 0.75)
+
+[node name="BonusActions" type="Marker2D" parent="CompactLayout" unique_id=1175496458]
+position = Vector2(987, 81)
+
+[node name="PassTile" type="Marker2D" parent="CompactLayout" unique_id=1880354468]
+position = Vector2(1460, 149)
+scale = Vector2(0.7, 0.7)
+
+[node name="PassTileGuide" type="ReferenceRect" parent="CompactLayout/PassTile" unique_id=605844042]
+offset_left = -60.0
+offset_top = -187.5
+offset_right = 60.0
+offset_bottom = 187.5
+mouse_filter = 2
+border_color = Color(1, 0.8, 0, 1)
+border_width = 2.0
+
+[node name="PowerOffer" type="Marker2D" parent="CompactLayout" unique_id=1909746575]
+position = Vector2(1170, 32)
+
+[node name="BuildingRow" type="Node2D" parent="CompactLayout" unique_id=969391312]
+position = Vector2(616, 228)
+
+[node name="PriestSupply" type="Marker2D" parent="CompactLayout" unique_id=1416315931]
+position = Vector2(140, 222)
+
+[node name="BridgeSupply" type="Marker2D" parent="CompactLayout" unique_id=279626621]
+position = Vector2(76, 224)
+
+[node name="HaveKeys" type="Marker2D" parent="CompactLayout" unique_id=266523997]
+position = Vector2(510, 221)
+
+[node name="TerrainMarker" type="Marker2D" parent="CompactLayout" unique_id=1503916145]
+position = Vector2(127, 156)
+
+[node name="Portrait" type="Sprite2D" parent="." unique_id=212676]
+position = Vector2(132, 90)
+texture = ExtResource("3_ct12v")
+
+[node name="HaveKeys" type="Node2D" parent="." unique_id=1916097332]
+position = Vector2(141, 492)
+script = ExtResource("10_64bmn")
+Kinds = "keys"
+IconSize = 86
+Vertical = true
+Spacing = 60.0
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="TerrainMarker" type="Marker2D" parent="." unique_id=735696084]
+position = Vector2(101, 342)
+
+[node name="Resources" type="Node2D" parent="." unique_id=351825484]
+position = Vector2(460, 90)
+
+[node name="PriestStack" type="Marker2D" parent="Resources" unique_id=336243071]
+position = Vector2(-19, -55)
+
+[node name="HaveCoinsWorkers" type="Node2D" parent="Resources" unique_id=1682358618]
+position = Vector2(-180, -55)
+script = ExtResource("10_64bmn")
+Kinds = "coins, workers"
+IconSize = 64
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="HaveVPs" type="Node2D" parent="Resources" unique_id=2127299521]
+position = Vector2(-417, -47)
+script = ExtResource("10_64bmn")
+Kinds = "VP"
+IconSize = 74
+Vertical = true
+Spacing = 60.0
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="Income" type="Node2D" parent="Resources" unique_id=2129202990]
+position = Vector2(-180, 8)
+script = ExtResource("10_64bmn")
+Kinds = "coins, workers, priests, power"
+IncomeIcons = true
+IconSize = 64
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="PriestSupply" type="Marker2D" parent="." unique_id=1029149077]
+position = Vector2(61, 547)
+
+[node name="BridgeSupply" type="Node2D" parent="." unique_id=8432823]
+position = Vector2(73, 492)
+
+[node name="Favours" type="Marker2D" parent="." unique_id=356531805]
+position = Vector2(1298, 231)
+scale = Vector2(0.8, 0.8)
+
+[node name="BonusActions" type="Marker2D" parent="." unique_id=423573199]
+position = Vector2(987, 81)
+
+[node name="PassTile" type="Marker2D" parent="." unique_id=1183663824]
+position = Vector2(1460, 383)
+
+[node name="PassTileGuide" type="ReferenceRect" parent="PassTile" unique_id=1443373364]
+offset_left = -60.0
+offset_top = -187.5
+offset_right = 60.0
+offset_bottom = 187.5
+mouse_filter = 2
+border_color = Color(1, 0.8, 0, 1)
+border_width = 2.0
+
+[node name="Shipping" type="Node2D" parent="." unique_id=580975952]
+position = Vector2(97, 234)
+
+[node name="Level" type="Node2D" parent="Shipping" unique_id=1369858174]
+position = Vector2(3.800003, -0.19999695)
+script = ExtResource("10_64bmn")
+IconSize = 73
+IconScales = "tunnel 0.7"
+CountOffset = Vector2(0, -10)
+FontSize = 38
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="Cost" type="Node2D" parent="Shipping" unique_id=16926706]
+position = Vector2(1.800003, 49.800003)
+script = ExtResource("10_64bmn")
+RepeatIconsExcept = "priests"
+Spacing = 30.0
+RepeatSpacing = 10.0
+StepSpacing = 10.0
+Centred = true
+FontSize = 32
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="ReachIcon" type="Marker2D" parent="." unique_id=948204383]
+position = Vector2(80, 247)
+
+[node name="ReachNumber" type="Marker2D" parent="." unique_id=598002335]
+position = Vector2(142, 247)
+
+[node name="Spades" type="Node2D" parent="." unique_id=747499924]
+position = Vector2(104, 435)
+
+[node name="SpadeIcon" type="Sprite2D" parent="Spades" unique_id=250680056]
+position = Vector2(-34.000004, -69.99999)
+scale = Vector2(0.8, 0.8)
+script = ExtResource("14_x2xf3")
+Icon = 11
+IconSize = 90
+metadata/_custom_type_script = "uid://b2hbkc0kd4l6n"
+
+[node name="Rate" type="Node2D" parent="Spades" unique_id=471266009]
+position = Vector2(23, -74)
+script = ExtResource("10_64bmn")
+IconSize = 56
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="Cost" type="Node2D" parent="Spades" unique_id=1606379685]
+position = Vector2(-5, -18)
+script = ExtResource("10_64bmn")
+Spacing = 30.0
+Centred = true
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="BuildingBoard" type="Node2D" parent="." unique_id=1363563220]
+position = Vector2(200.15, 184)
+scale = Vector2(1.3, 1.3)
+script = ExtResource("10_n4ljo")
+PreviewFaction = 39
+Resolution = 1.75
+IncomeIconSize = 34
+IncomeSpacing = 22.0
+IncomeVertical = true
+IncomeFontSize = 26
+IncomeOffset = Vector2(0, -2)
+IncomeRepeatStep = Vector2(12, 12)
+CostIconSize = 36
+CostFontSize = 24
+CostCountOffset = Vector2(0, 0)
+FavourScale = 0.6
+FavourOpacity = 0.5
+FavourOffset = Vector2(-45, 0)
+StrongholdIconSize = 64
+StrongholdFontSize = 36
+StrongholdActionScale = 1.0
+StrongholdRuleHeight = 100.0
+PowerSpacing = 12.0
+
+[node name="PowerBank" type="Node2D" parent="." unique_id=1572378113]
+position = Vector2(758, 84)
+scale = Vector2(0.8, 0.8)
+script = ExtResource("9_v2u8l")
+TokenSize = 38
+CentreRows = true
+
+[node name="PlayerButton" type="BaseButton" parent="." unique_id=926594029]
+unique_name_in_owner = false
+process_mode = 0
+process_priority = 0
+process_physics_priority = 0
+process_thread_group = 0
+physics_interpolation_mode = 2
+auto_translate_mode = 0
+editor_description = ""
+visible = true
+modulate = Color(1, 1, 1, 1)
+self_modulate = Color(1, 1, 1, 1)
+show_behind_parent = false
+top_level = false
+clip_children = 0
+oversampling_with_scale = 0
+light_mask = 1
+visibility_layer = 1
+z_index = 0
+z_as_relative = true
+y_sort_enabled = false
+texture_filter = 0
+texture_repeat = 0
+material = null
+use_parent_material = false
+custom_minimum_size = Vector2(0, 0)
+custom_maximum_size = Vector2(-1, -1)
+propagate_maximum_size = false
+clip_contents = false
+layout_mode = 3
+anchors_preset = 0
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 1422.0
+offset_top = 41.0
+offset_right = 1506.0
+offset_bottom = 125.0
+grow_horizontal = 1
+grow_vertical = 1
+rotation = 0.0
+scale = Vector2(1, 1)
+pivot_offset = Vector2(0, 0)
+pivot_offset_ratio = Vector2(0, 0)
+size_flags_horizontal = 1
+size_flags_vertical = 1
+size_flags_stretch_ratio = 1.0
+offset_transform_enabled = false
+offset_transform_position = Vector2(0, 0)
+offset_transform_position_ratio = Vector2(0, 0)
+offset_transform_scale = Vector2(1, 1)
+offset_transform_rotation = 0.0
+offset_transform_pivot = Vector2(0, 0)
+offset_transform_pivot_ratio = Vector2(0.5, 0.5)
+offset_transform_visual_only = true
+localize_numeral_system = true
+layout_direction = 0
+translation_context = &""
+tooltip_text = ""
+tooltip_auto_translate_mode = 0
+focus_neighbor_left = NodePath("")
+focus_neighbor_top = NodePath("")
+focus_neighbor_right = NodePath("")
+focus_neighbor_bottom = NodePath("")
+focus_next = NodePath("")
+focus_previous = NodePath("")
+focus_mode = 2
+focus_behavior_recursive = 0
+mouse_filter = 0
+mouse_behavior_recursive = 0
+mouse_force_pass_scroll_events = true
+mouse_default_cursor_shape = 0
+accessibility_name = ""
+accessibility_description = ""
+accessibility_live = 0
+accessibility_controls_nodes = Array[NodePath]([])
+accessibility_described_by_nodes = Array[NodePath]([])
+accessibility_labeled_by_nodes = Array[NodePath]([])
+accessibility_flow_to_nodes = Array[NodePath]([])
+theme = null
+theme_type_variation = &""
+disabled = false
+toggle_mode = false
+button_pressed = false
+action_mode = 1
+button_mask = 1
+keep_pressed_outside = false
+button_group = null
+shortcut = null
+shortcut_feedback = true
+shortcut_in_tooltip = true
+script = ExtResource("10_xs7ou")

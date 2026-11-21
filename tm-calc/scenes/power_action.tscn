@@ -1,0 +1,44 @@
+[gd_scene format=3 uid="uid://bx2a80tgl8jgg"]
+
+[ext_resource type="Script" uid="uid://dsjcg4b300ik8" path="res://scripts/Tiles/PowerActionView.cs" id="1_4cw04"]
+[ext_resource type="Script" uid="uid://cox6dvgaf83k8" path="res://scripts/Parts/ResourceBundle.cs" id="3_0kpo8"]
+[ext_resource type="Script" uid="uid://d1q4o8kkhaspd" path="res://scripts/Tiles/BlankTileSprite.cs" id="3_4cw04"]
+[ext_resource type="Script" uid="uid://b2hbkc0kd4l6n" path="res://scripts/Parts/IconSprite.cs" id="5_0kpo8"]
+[ext_resource type="PackedScene" uid="uid://dbssh7qh5c1u" path="res://scenes/action_token.tscn" id="5_mc7j6"]
+
+[node name="PowerAction" type="Node2D" unique_id=338331728]
+script = ExtResource("1_4cw04")
+PreviewAction = 3
+metadata/_custom_type_script = "uid://xl4nvakpfe8a"
+
+[node name="Background" type="Sprite2D" parent="." unique_id=1585885926]
+scale = Vector2(1.6, 1.2)
+script = ExtResource("3_4cw04")
+Tile = 3
+TileScale = 0.7
+metadata/_custom_type_script = "uid://d1q4o8kkhaspd"
+
+[node name="From" type="Node2D" parent="." unique_id=977476989]
+position = Vector2(-55, 9)
+script = ExtResource("3_0kpo8")
+IconSize = 63
+FontSize = 34
+metadata/_custom_type_script = "uid://cox6dvgaf83k8"
+
+[node name="Arrow" type="Sprite2D" parent="." unique_id=547359311]
+position = Vector2(-1.5, 4)
+script = ExtResource("5_0kpo8")
+Icon = 18
+metadata/_custom_type_script = "uid://b2hbkc0kd4l6n"
+
+[node name="To" parent="." unique_id=819198683 instance=ExtResource("5_mc7j6")]
+position = Vector2(55, 4)
+
+[node name="Content" parent="To" index="1" unique_id=254205501]
+RepeatIconsExcept = "spades"
+IconSize = 41
+Step = Vector2(-7, 7)
+RepeatSpacing = 12.0
+FontSize = 28
+
+[editable path="To"]
