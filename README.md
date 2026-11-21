@@ -617,11 +617,10 @@ app's drawing code.
 ## Credits
 
 - **Terra Mystica** is designed by Jens Drögemüller and Helge Ostertag and published by Feuerland Spiele. This
-  project is an unofficial fan work and includes none of the published game's artwork.
+  project is an unofficial fan work.
 - **Fan factions** are the work of the Terra Mystica community, as played on Board Game Arena.
 - **Board Game Arena** hosts the online games that the importer reads. The bookmarklet only reads what a logged-in
   user's own browser has already loaded.
-- **Faction portraits and every drawing** in the app were made for this project.
 
 ---
 
