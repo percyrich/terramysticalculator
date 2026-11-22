@@ -113,7 +113,8 @@ public readonly record struct BonusActionId(BonusSource Source, BonusAction Acti
 public enum Terrain { Wasteland, Desert, Plains, Swamp, Lake, Forest, Mountain, Ice, Volcano, River }
 
 // How strictly the rules are applied (GameState.Mode; changed with SetMode):
-//   Strict: by the rules, and any move that leaves a player in debt (coins, workers, priests) or below 0 VP is refused;
+//   Strict: by the rules, and any move that leaves a player in debt (coins, workers, priests) is refused; below 0 VP
+//     is allowed (an auction bid can put a player there), with a warning;
 //   Lenient: by the rules, but debt and negative VP are allowed, with a warning;
 //   Free: planning during play: the selected faction takes any number of normal actions, with normal costs and
 //     rewards, without the turn order (GameState.Planning). Before round 1 it waits for round 1 to begin.

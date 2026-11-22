@@ -27,7 +27,8 @@ public static partial class Rules
     // Every move goes through here. Moves are applied one by one (ApplyMove); after the Chaos Magicians' double
     // action, the turn's action is taken twice: the first action leaves ActionTaken false (one action still owed),
     // the second sets it; anything else in between (spending spades, bridges, favours) leaves it as it was.
-    // Strict refuses any move that leaves somebody in debt or below 0 VP (Lenient and Free only warn). In Free, every
+    // Strict refuses any move that leaves somebody in debt (coins, workers, priests); below 0 VP only warns, as in
+    // Lenient and Free (an auction bid can leave a player there). In Free, every
     // faction that takes an action is remembered (FreePlan.Acted).
     public static MoveResult Apply(GameState state, Move move)
     {
@@ -68,7 +69,7 @@ public static partial class Rules
         // no debt then.
         if ((state.Mode == PlayMode.Strict && next.Mode == PlayMode.Strict || IsCalculatorStrict(state))
             && next.Phase != Phase.SettingUp && next.Phase >= Phase.PlacingDwellings && next.Phase != Phase.Finished && next.AnyoneInDebt)
-            return new MoveResult(state, Array.Empty<GameEvent>(), new[] { new Issue(Severity.Error, $"Strict: {DebtText(next)}") });
+            return new MoveResult(state, Array.Empty<GameEvent>(), new[] { new Issue(Severity.Error, $"Strict: {DebtText(next, strict: true)}") });
         // Anyone left deeper in debt (or lower below 0 VP) with no warning about it yet gets one. (Not for the move ending
         // the game: final scoring ignores priest debt; it stays shown on the board.)
         if (next.Phase != Phase.SettingUp && next.Phase >= Phase.PlacingDwellings && next.Phase != Phase.Finished && !result.Issues.Any(issue => issue.Severity == Severity.Warning))
@@ -306,17 +307,18 @@ public static partial class Rules
         (after.Coins < 0 && after.Coins < before.Coins) || (after.Workers < 0 && after.Workers < before.Workers)
         || after.PriestDebt > before.PriestDebt || (after.VictoryPoints < 0 && after.VictoryPoints < before.VictoryPoints);
 
-    // Who is in debt or below 0 VP, and by how much ("the Giants would be in debt: -2 coins, 1 priest").
-    private static string DebtText(GameState state, bool would = true)
+    // Who is in debt or below 0 VP, and by how much ("the Giants would be in debt: -2 coins, 1 priest"). strict: only
+    // what Strict refuses (VP left out).
+    private static string DebtText(GameState state, bool would = true, bool strict = false)
     {
         var parts = new List<string>();
-        foreach (var player in state.Players.Where(player => player.InDebt))
+        foreach (var player in state.Players.Where(player => strict ? player.OwesResources : player.InDebt))
         {
             var debts = new List<string>();
             if (player.Coins < 0) debts.Add($"{player.Coins} coins");
             if (player.Workers < 0) debts.Add($"{player.Workers} workers");
             if (player.PriestDebt > 0) debts.Add(player.PriestDebt == 1 ? "1 priest" : $"{player.PriestDebt} priests");
-            if (player.VictoryPoints < 0) debts.Add($"{player.VictoryPoints} VP");
+            if (player.VictoryPoints < 0 && !strict) debts.Add($"{player.VictoryPoints} VP");
             parts.Add($"the {Name(player.Faction)} {(would ? "would be" : "are")} in debt ({string.Join(", ", debts)})");
         }
         return string.Join("; ", parts) + ".";

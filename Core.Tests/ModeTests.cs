@@ -65,12 +65,11 @@ public class ModeTests
     {
         var s = PlayFrom(Play(Confirmed(W, G)), new AdjustStartingVictoryPoints(G, 10), new AdjustStartingVictoryPoints(W, -25));
         Assert.Equal(30, Rules.StartingVictoryPoints(s[G]));
-        Assert.Equal(0, Rules.StartingVictoryPoints(s[W])); // never below 0
-        Assert.False(Rules.Apply(s, new AdjustStartingVictoryPoints(W, -1)).Accepted);
+        Assert.Equal(-5, Rules.StartingVictoryPoints(s[W])); // a high bid can take it below 0
 
         var started = PlayFrom(s, SetUpAndStart(W, G));
         Assert.Equal(30, started[G].VictoryPoints);
-        Assert.Equal(0, started[W].VictoryPoints);
+        Assert.Equal(-5, started[W].VictoryPoints);
         Assert.False(Rules.Apply(started, new AdjustStartingVictoryPoints(G, 1)).Accepted);
     }
 
@@ -85,6 +84,15 @@ public class ModeTests
         Assert.True(result.Accepted);
         Assert.Equal(12, Rules.StartingVictoryPoints(result.State[G]));
         Assert.Equal(12, PlayFrom(result.State, SetUpAndStart(W, G))[G].VictoryPoints);
+
+        // A bid past 20: below 0 VP, and Strict still plays on (only coins, workers and priests owed are refused).
+        var below = Rules.Apply(Play(moves), new AdjustStartingVictoryPoints(G, -23));
+        Assert.True(below.Accepted);
+        var playing = PlayFrom(below.State, SetUpAndStart(W, G));
+        Assert.Equal(PlayMode.Strict, playing.Mode);
+        Assert.Equal(-3, playing[G].VictoryPoints);
+        Assert.True(Rules.Apply(playing, new SetMode(PlayMode.Lenient)).Accepted);
+        Assert.True(Rules.Apply(playing with { Mode = PlayMode.Lenient }, new SetMode(PlayMode.Strict)).Accepted);
     }
 
     [Fact]

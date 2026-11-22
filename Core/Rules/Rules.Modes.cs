@@ -44,7 +44,7 @@ public static partial class Rules
         if (move.Mode == PlayMode.Free && state.Phase == Phase.OrderingTurns)
             return MoveResult.Rejected(state, "Finish the turn order first.");
         if (move.Mode == PlayMode.Strict && state.Phase != Phase.SettingUp && state.AnyoneInDebt)
-            return MoveResult.Rejected(state, $"Strict can't begin while {DebtText(state, would: false)}");
+            return MoveResult.Rejected(state, $"Strict can't begin while {DebtText(state, would: false, strict: true)}");
 
         var events = new List<GameEvent>();
         var next = state with { Mode = move.Mode };

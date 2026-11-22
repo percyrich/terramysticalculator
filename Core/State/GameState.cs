@@ -75,8 +75,8 @@ public sealed record GameState(
     // Free play is under way: the selected faction (ActivePlayer) acts without the turn order.
     public bool IsPlanning => Planning is not null;
 
-    // Somebody is in debt (coins, workers or priests) or below 0 VP: refused in Strict.
-    public bool AnyoneInDebt => Players.Any(player => player.InDebt);
+    // Somebody is in debt (coins, workers or priests): refused in Strict. Below 0 VP isn't (PlayerState.OwesResources).
+    public bool AnyoneInDebt => Players.Any(player => player.OwesResources);
     public ValueList<TownMaker> Makers => TownMakers ?? ValueList<TownMaker>.Empty;
 
     // The map shown before one is chosen is the base map; ChooseMap replaces it.

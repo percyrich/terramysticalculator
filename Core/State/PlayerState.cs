@@ -247,6 +247,9 @@ public sealed record PlayerState(
     // Coins and workers only: priests are pieces, paid by the rules one at a time (Rules.PayPriest).
     // In debt (coins, workers or priests), or below 0 VP.
     public bool InDebt => Coins < 0 || Workers < 0 || PriestDebt > 0 || VictoryPoints < 0;
+    // In debt as Strict counts it: coins, workers or priests owed. Below 0 VP is allowed even there (an auction bid can
+    // put a player there; Andrew 2026-11-22), with a warning as in Lenient.
+    public bool OwesResources => Coins < 0 || Workers < 0 || PriestDebt > 0;
 
     public PlayerState Pay(Cost cost) => this with { Coins = Coins - cost.Coins, Workers = Workers - cost.Workers };
 

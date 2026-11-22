@@ -276,7 +276,7 @@ public static partial class Rules
                 issues.Add($"More than one faction at the top of {track}: {string.Join(", ", top)}");
         }
         if (state.Mode == PlayMode.Strict && state.AnyoneInDebt)
-            issues.Add($"Strict: {DebtText(state, would: false)}");
+            issues.Add($"Strict: {DebtText(state, would: false, strict: true)}");
         return new ValueList<string>(issues);
     }
 }
