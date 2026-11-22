@@ -132,6 +132,14 @@ public sealed record ConvertCoinsToVictoryPoint(Faction Player) : Move;
 // ----- Owed after a build, during the player's own turn -----
 // Cultists: an opponent took the power from their build, so they move up a track of their choice.
 public sealed record TakeCultStep(Faction Player, Track Track) : Move;
+// Cultists: or they give that step up (BGA lets them).
+public sealed record DeclineCultStep(Faction Player) : Move;
+// The stronghold's power (Alchemists) or tokens (Children of the Wyrm), held as a reward after the action: taken now,
+// once its power offers are answered (else at End turn).
+public sealed record TakeHeldPower(Faction Player) : Move;
+// Fewer keys than tracks whose step onto 10 waits for one (a town's steps on every track: TopStepChoiceOwed): the
+// player chooses where a key goes, one track at a time.
+public sealed record TakeTopStep(Faction Player, Track Track) : Move;
 // Darklings, the turn their stronghold is built: exchange workers for priests, up to 3 in all (one at a time or
 // several at once). Those not exchanged by the end of the turn are lost.
 public sealed record ExchangeWorkersForPriests(Faction Player, int Workers) : Move;

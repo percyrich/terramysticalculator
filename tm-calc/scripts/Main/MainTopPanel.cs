@@ -11,7 +11,8 @@ namespace TMCalc;
 //     bookmark made) takes its place in italics for NoteSeconds, then it comes back. A prompt
 //     (instructions for a mode that is open: a bonus action's target, a town or bridge to place, the shapeshift, the
 //     Alchemists' coin) shows in italics for as long as the mode is open (ShowPrompt; cleared with the mode).
-//   Second line: the latest record of the game log (GameLog.Describe of the current position).
+//   Second line: the game log's line for the current position (GameLog.Lines), in colour (LogSegments: each part in
+//     its faction's colour; the full log and the notes too).
 //   Log key: the whole log under the bar, newest first (TopPanelLog), modal like the bookmark map: the board behind it
 //     dimmed and ignoring the mouse; Esc, the log key, L or a click on the dimmed board closes it. Each record's
 //     bookmark button adds or removes a bookmark there (History.ToggleBookmark); its arrow goes there
@@ -32,7 +33,7 @@ public partial class Main
     private ColorRect _logDim;
     private string _instruction = "", _prompt, _note;
     private int _noteNumber;           // which note a timer belongs to (a newer note keeps its own time)
-    private readonly Dictionary<int, string> _logTexts = new(); // GameLog text by position (positions never change)
+    private readonly Dictionary<int, IReadOnlyList<GameLog.LogPart>> _logTexts = new(); // GameLog parts by position (positions never change)
 
     private void ReadyTopPanel()
     {
@@ -151,12 +152,39 @@ public partial class Main
 
     // ---------- The log ----------
 
-    private string LogText(LogEntry entry)
+    private IReadOnlyList<GameLog.LogPart> LogText(LogEntry entry)
     {
-        if (!_logTexts.TryGetValue(entry.Position, out string text))
-            _logTexts[entry.Position] = text = GameLog.Describe(entry);
-        return text;
+        if (!_logTexts.TryGetValue(entry.Position, out IReadOnlyList<GameLog.LogPart> parts))
+            _logTexts[entry.Position] = parts = GameLog.Parts(entry);
+        return parts;
     }
+
+    // A log line in colour: each part in the colour of the faction it is about, with a stroke round its letters (black
+    // round light colours and brown, white round dark ones); what is nobody's, and the " · " between parts, in the power
+    // purple.
+    private IReadOnlyList<LogSegment> LogSegments(IReadOnlyList<GameLog.LogPart> parts)
+    {
+        GameState state = _history.Current;
+        LogSegment Look(string text, Faction? faction)
+        {
+            if (faction is not Faction f)
+                return new LogSegment(text, IconArt.PowerPurple, LogStroke(IconArt.PowerPurple, null));
+            PlayerColour colour = state.IsInGame(f) ? state[f].Colour : Factions.ColourOf(f);
+            Color fill = Art.PieceColour(colour);
+            return new LogSegment(text, fill, LogStroke(fill, colour));
+        }
+        var segments = new List<LogSegment>();
+        for (var i = 0; i < parts.Count; i++)
+        {
+            if (i > 0)
+                segments.Add(Look(GameLog.Separator, null));
+            segments.Add(Look(parts[i].Text, parts[i].Faction));
+        }
+        return segments;
+    }
+
+    private static Color LogStroke(Color fill, PlayerColour? colour) =>
+        colour == PlayerColour.Brown || fill.Luminance > 0.5f ? Colors.Black : Colors.White;
 
     // The keys, the latest record, and the whole log while it is open (from RenderHistory).
     private void RenderTopPanel()
@@ -180,10 +208,14 @@ public partial class Main
         List<GameLog.LogLine> lines = GameLog.Lines(log, at + 1, LogText);
         _logRows.Clear();
         _logRows.AddRange(lines.Select(line => line.Index));
-        _topPanel.LogEntry = at >= 0 ? lines.FirstOrDefault(line => line.Index == at)?.Text ?? LogText(log[at]) : "";
+        _topPanel.ShowLogEntry(at >= 0 ? LogSegments(lines.FirstOrDefault(line => line.Index == at)?.Parts ?? LogText(log[at])) : null);
         if (_topPanel.LogOpen)
-            _topPanel.ShowLog(lines.Select(line => line.Text).ToList(), lines.Count(line => line.Index <= at),
-                Enumerable.Range(0, lines.Count).Where(row => log[lines[row].Index].Bookmark is not null), new[] { 0 });
+        {
+            int played = lines.Count(line => line.Index <= at);
+            _topPanel.Log.ShowRows(lines.Select((line, row) => new TopPanelLog.Row(line.Text, row == 0 ? null : row, 0, false,
+                row == played - 1 ? TopPanelLog.RowState.Here : row >= played ? TopPanelLog.RowState.Later : TopPanelLog.RowState.Played,
+                log[line.Index].Bookmark is not null, row == 0, LogSegments(line.Parts))).ToList());
+        }
     }
 
     private readonly List<int> _logRows = new(); // each log row's last record (its index in History.Log)

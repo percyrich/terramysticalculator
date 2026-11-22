@@ -150,14 +150,15 @@ public static partial class Rules
         if (move.Player != Faction.Alchemists)
             return MoveResult.Rejected(state, "Only the Alchemists can turn victory points into coins.");
 
-        var player = state[move.Player];
-        var converted = player with { VictoryPoints = player.VictoryPoints - 1, Coins = player.Coins + 1 };
+        // The VP lost is logged (VictoryPointsGained, no source), so the statistics count it under the faction's ability.
+        var events = new List<GameEvent>();
+        var next = GainVictoryPoints(state, move.Player, -1, events);
+        var converted = next[move.Player] with { Coins = next[move.Player].Coins + 1 };
+        events.Add(new CoinGained(move.Player, converted.Coins));
         var warnings = converted.VictoryPoints < 0
             ? new[] { new Issue(Severity.Warning, $"The {Name(move.Player)} now have {converted.VictoryPoints} victory points.") }
             : MoveResult.NoIssues;
-        return MoveResult.Ok(state.WithPlayer(converted),
-            new GameEvent[] { new CoinGained(move.Player, converted.Coins) },
-            warnings);
+        return MoveResult.Ok(next.WithPlayer(converted), events, warnings);
     }
 
     // Alchemists: 2 coins become 1 victory point.

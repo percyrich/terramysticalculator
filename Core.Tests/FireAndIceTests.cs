@@ -354,6 +354,7 @@ public class FireAndIceTests
         var owed = (s with { ActionTaken = true });
         owed = owed.WithPlayer(owed[RW] with { BridgesOwed = 2, BridgesOptional = true });
         Assert.Equal("The Riverwalkers must place their bridges first (or skip them).", Refusal(owed, End(RW)));
+        Assert.True(Rules.Apply(owed.WithPlayer(owed[RW] with { Workers = 1 }), new ConvertWorkerToCoin(RW)).Accepted); // a reward after the action (Andrew 2026-11-23)
         Assert.True(Rules.Apply(PlayFrom(owed, new SkipBridges(RW)), End(RW)).Accepted);
         Assert.Equal("The Riverwalkers have no free bridges to skip.",
             Refusal(owed.WithPlayer(owed[RW] with { BridgesOwed = 1, BridgesOptional = false }), new SkipBridges(RW)));

@@ -56,12 +56,6 @@ public static partial class Rules
         }
         var next = DropHeldTopSteps(state, NoteTownMakers(state, result.State));
         next = TreasuryOfferAfter(state, move, next, result.Events); // what the Treasurers may put in their Safe now
-        // Power held for the end of an action (the Alchemists' stronghold) comes once the action is complete and every
-        // power offer from it has been answered (as on BGA).
-        var releasedPower = new List<GameEvent>();
-        next = ReleaseHeldPowerWhenDone(next, releasedPower);
-        if (releasedPower.Count > 0)
-            result = result with { Events = result.Events.Concat(releasedPower).ToList() };
         if (state.Planning is not null && next.Planning is FreePlan plan && (IsAction(state, move) || move is BonusDoubleAction)
             && state.ActivePlayer is Faction actor && !plan.Acted.Contains(actor))
             next = next with { Planning = plan with { Acted = plan.Acted.Add(actor) } };
@@ -193,6 +187,9 @@ public static partial class Rules
         ConvertVictoryPointToCoin m  => ApplyConvertVictoryPointToCoin(state, m),
         ConvertCoinsToVictoryPoint m => ApplyConvertCoinsToVictoryPoint(state, m),
         TakeCultStep m          => ApplyTakeCultStep(state, m),
+        DeclineCultStep m       => ApplyDeclineCultStep(state, m),
+        TakeHeldPower m         => ApplyTakeHeldPower(state, m),
+        TakeTopStep m           => ApplyTakeTopStep(state, m),
         ExchangeWorkersForPriests m  => ApplyExchangeWorkersForPriests(state, m),
         FinishPriestExchange m  => ApplyFinishPriestExchange(state, m),
         BonusShapeshift m       => ApplyBonusShapeshift(state, m),

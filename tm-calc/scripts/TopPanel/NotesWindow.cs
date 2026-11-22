@@ -61,8 +61,7 @@ public partial class NotesWindow : Window
             Show();
         }
         KeepInside();
-        MoveToForeground();
-        GrabFocus();
+        GrabFocus(); // brings it to the front (MoveToForeground is obsolete)
     }
 
     public override void _Process(double delta)

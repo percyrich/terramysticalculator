@@ -6,18 +6,74 @@ namespace Core;
 // along each row (river hexes skipped); river hexes r0, r1, … over the whole map, row by row.
 public static class GameLog
 {
-    public static string Describe(LogEntry entry) =>
-        entry.Move is Move move && entry.Before is GameState before
-            ? Describe(before, move, entry.Events, entry.After)
-            : History.SessionStart;
+    // ---------- Parts: what a record says, " · " between them, each with the faction it is about ----------
 
-    public static string Describe(GameState before, Move move, IReadOnlyList<GameEvent> events, GameState after)
+    // What a part is: the action itself, a power offer from it ("X offered 2pw", tagged "(yes)" or "(no)" once
+    // answered: OfferTags), what accepting an offer brought (the power and the VP paid: shown by the tag instead), or
+    // anything else.
+    public enum PartKind { Action, Offer, OfferGain, Other }
+
+    // One part of a record's text, and the faction it is about (null: nobody in particular, e.g. "round 2 begins").
+    public sealed record LogPart(string Text, Faction? Faction, PartKind Kind = PartKind.Other);
+
+    public const string Separator = " · ";
+
+    public static string Plain(IEnumerable<LogPart> parts) => string.Join(Separator, parts.Select(part => part.Text));
+
+    public static string Describe(LogEntry entry) => Plain(Parts(entry));
+
+    public static string Describe(GameState before, Move move, IReadOnlyList<GameEvent> events, GameState after) =>
+        Plain(Parts(before, move, events, after));
+
+    public static IReadOnlyList<LogPart> Parts(LogEntry entry) =>
+        entry.Move is Move move && entry.Before is GameState before
+            ? Parts(before, move, entry.Events, entry.After)
+            : new[] { new LogPart(History.SessionStart, null, PartKind.Action) };
+
+    // The action (with what it paid), then what it brought about (Results), resource amounts written short. Power
+    // offers answered in the same record (taken without asking) are tagged at once.
+    public static IReadOnlyList<LogPart> Parts(GameState before, Move move, IReadOnlyList<GameEvent> events, GameState after)
     {
         string text = Action(before, move, events, after) + Paid(before, move, events, after);
         if (before.IsPlanning && !before.Options.Calculator && move is not SetMode) // Calculator: always Free
             text += " (Free)";
-        List<string> results = Results(move, Actor(move), events);
-        return Abbreviated(results.Count == 0 ? text : $"{text} · {string.Join(" · ", results)}");
+        var parts = new List<LogPart> { new(Abbreviated(text), PartFaction(move), PartKind.Action) };
+        parts.AddRange(Results(move, Actor(move), events).Select(part => part with { Text = Abbreviated(part.Text) }));
+        return OfferTags(parts, events);
+    }
+
+    // The faction a record's action is about.
+    private static Faction? PartFaction(Move move) => move switch
+    {
+        EditBuilding m => m.Building.Owner,
+        EditReturnPriest m => m.Priest.Owner,
+        EditPlacePriest m => m.Priest.Owner,
+        _ => Actor(move),
+    };
+
+    // Each offer part tagged with its answer among these events, in order: "(yes)", "(yes, −1 VP)" or "(no)"; offers
+    // not answered yet stay as they are. What an accepted offer brought (OfferGain parts of its faction) is left out:
+    // the tag says it. extra: parts added at the end (a run's later records' results).
+    private static List<LogPart> OfferTags(IReadOnlyList<LogPart> parts, IEnumerable<GameEvent> events, IEnumerable<LogPart>? extra = null)
+    {
+        var answers = events.OfType<PowerOfferAnswered>().ToList();
+        var tagged = new HashSet<Faction>();
+        var result = new List<LogPart>();
+        foreach (LogPart part in parts.Concat(extra ?? Enumerable.Empty<LogPart>()))
+        {
+            if (part.Kind == PartKind.Offer && part.Faction is Faction offered
+                && answers.FirstOrDefault(a => a.Faction == offered) is PowerOfferAnswered answer)
+            {
+                answers.Remove(answer);
+                if (answer.Accepted)
+                    tagged.Add(offered);
+                string tag = !answer.Accepted ? "no" : answer.VictoryPointsPaid > 0 ? $"yes, −{answer.VictoryPointsPaid} VP" : "yes";
+                result.Add(part with { Text = $"{part.Text} ({tag})", Kind = PartKind.Other }); // (tagged once only)
+            }
+            else
+                result.Add(part);
+        }
+        return result.Where(part => !(part.Kind == PartKind.OfferGain && part.Faction is Faction f && tagged.Contains(f))).ToList();
     }
 
     // Resource amounts written as the conversions and payments are: "3 coins, 1 worker" → "3c 1w", "4 power" → "4pw",
@@ -31,53 +87,84 @@ public static class GameLog
         AmountPattern.Replace(text, m => m.Groups[2].Success ? $"{m.Groups[1].Value}{m.Groups[2].Value[0]}" : $"{m.Groups[1].Value}pw"),
         "$1 ");
 
-    // ---------- Lines: conversions run together ----------
+    // ---------- Lines: conversions and power offers run together ----------
 
-    // One line of the log as shown: the text and the last record it covers. A run of one faction's conversions
-    // (IsConversion) among the records played becomes one line, rewritten as the run grows ("Alchemists burn 2pw.
-    // Alchemists do conversions: 8pw → 1p 1w"); a bookmark ends a run. Records not yet played (the redo line) keep a
-    // line each. describe: each record's own text (the caller may cache it).
-    public sealed record LogLine(int Index, string Text);
+    // One line of the log as shown: its parts and the last record it covers. Among the records played:
+    //   a run of one faction's conversions (IsConversion) becomes one line, rewritten as the run grows ("Alchemists
+    //     burn 2pw. Alchemists do conversions: 8pw → 1p 1w");
+    //   a record that offers power, with the answers right after it (AcceptPower, DeclinePower), becomes one line: the
+    //     record's own, each offer tagged with its answer ("Engineers offered 1pw (yes) · Swarmlings offered 2pw (no)"),
+    //     then whatever else the answers brought about (e.g. the Cultists' step).
+    // A bookmark ends a run. Records not yet played (the redo line) keep a line each. describe: each record's own parts
+    // (the caller may cache them).
+    public sealed record LogLine(int Index, IReadOnlyList<LogPart> Parts)
+    {
+        public string Text => Plain(Parts);
+    }
 
-    public static List<LogLine> Lines(IReadOnlyList<LogEntry> entries, int played, Func<LogEntry, string> describe)
+    public static List<LogLine> Lines(IReadOnlyList<LogEntry> entries, int played, Func<LogEntry, IReadOnlyList<LogPart>> describe)
     {
         var lines = new List<LogLine>();
         for (var i = 0; i < entries.Count; i++)
         {
-            int last = i;
-            if (i < played && IsConversion(entries[i]) is Faction actor)
-                while (last + 1 < played && entries[last].Bookmark is null && IsConversion(entries[last + 1]) == actor)
-                    last++;
-            lines.Add(last == i && !(i < played && IsConversion(entries[i]) is not null)
-                ? new LogLine(i, describe(entries[i]))
-                : new LogLine(last, Conversions(entries, i, last)));
+            int last = RunEnd(entries, i, i < played ? played : i + 1, next => true);
+            lines.Add(new LogLine(last, RunParts(entries, i, last, i < played, describe)));
             i = last;
         }
         return lines;
     }
 
-    // ---------- The notes: conversions run together along a line ----------
+    // The last record of the run starting at `first` (itself if none), going no further than `limit` (exclusive);
+    // joins: whether the next record may be part of it at all (the notes: along the same line).
+    private static int RunEnd(IReadOnlyList<LogEntry> entries, int first, int limit, Func<int, bool> joins)
+    {
+        int last = first;
+        bool More(int next) => next < limit && entries[next - 1].Bookmark is null && joins(next)
+            && ReferenceEquals(entries[next].Before, entries[next - 1].After);
+        if (IsConversion(entries[first]) is Faction actor)
+            while (More(last + 1) && IsConversion(entries[last + 1]) == actor)
+                last++;
+        else if (entries[first].Events.Any(e => e is PowerOffered))
+            while (More(last + 1) && entries[last + 1].Move is AcceptPower or DeclinePower)
+                last++;
+        return last;
+    }
 
-    // One row of the notes window: its text, how far in, whether it opens a line ("(Alternate)"), and the last record
-    // it covers (an index into the notes). As in Lines, a run of one faction's conversions along one line shares a row;
-    // a bookmark, the current position (`current`) or a parting of lines ends it.
-    public sealed record NoteLine(int Index, string Text, int Depth, bool Opens);
+    // A run's parts: conversions as one; a record with its offers' answers; otherwise the record's own. played: a
+    // conversion on its own is written as a run (as it would be once followed by another), not when only to be redone.
+    private static IReadOnlyList<LogPart> RunParts(IReadOnlyList<LogEntry> entries, int first, int last, bool played,
+        Func<LogEntry, IReadOnlyList<LogPart>> describe)
+    {
+        if (IsConversion(entries[first]) is Faction actor && (played || last > first))
+            return new[] { new LogPart(Conversions(entries, first, last), actor, PartKind.Action) };
+        if (last == first)
+            return describe(entries[first]);
+        // The answers' own action ("X take 1pw for 0 VP") left out: the tags say it.
+        IEnumerable<LogPart> later = Enumerable.Range(first + 1, last - first).SelectMany(i => describe(entries[i]).Skip(1));
+        IEnumerable<GameEvent> events = Enumerable.Range(first, last - first + 1).SelectMany(i => entries[i].Events);
+        return OfferTags(describe(entries[first]), events, later);
+    }
 
-    public static List<NoteLine> NoteLines(IReadOnlyList<NoteEntry> notes, int current, Func<LogEntry, string> describe)
+    // ---------- The notes: conversions and power offers run together along a line ----------
+
+    // One row of the notes window: its parts, how far in, whether it opens a line ("(Alternate)"), and the last record
+    // it covers (an index into the notes). Runs as in Lines, along one line only; a bookmark, the current position
+    // (`current`) or a parting of lines ends one.
+    public sealed record NoteLine(int Index, IReadOnlyList<LogPart> Parts, int Depth, bool Opens)
+    {
+        public string Text => Plain(Parts);
+    }
+
+    public static List<NoteLine> NoteLines(IReadOnlyList<NoteEntry> notes, int current, Func<LogEntry, IReadOnlyList<LogPart>> describe)
     {
         var entries = notes.Select(n => n.Entry).ToList();
         var lines = new List<NoteLine>();
         for (var i = 0; i < notes.Count; i++)
         {
-            int last = i;
-            if (IsConversion(entries[i]) is Faction actor)
-                while (last + 1 < notes.Count && entries[last].Bookmark is null && entries[last].Position != current
-                       && !notes[last + 1].Opens && notes[last + 1].Depth == notes[i].Depth
-                       && ReferenceEquals(entries[last + 1].Before, entries[last].After)
-                       && IsConversion(entries[last + 1]) == actor)
-                    last++;
-            string text = IsConversion(entries[i]) is not null ? Conversions(entries, i, last) : describe(entries[i]);
-            lines.Add(new NoteLine(last, text, notes[i].Depth, notes[i].Opens));
+            int first = i;
+            int last = RunEnd(entries, i, notes.Count, next => entries[next - 1].Position != current
+                && !notes[next].Opens && notes[next].Depth == notes[first].Depth);
+            lines.Add(new NoteLine(last, RunParts(entries, i, last, played: true, describe), notes[i].Depth, notes[i].Opens));
             i = last;
         }
         return lines;
@@ -257,6 +344,9 @@ public static class GameLog
             ConvertVictoryPointToCoin m => $"{Name(m.Player)} sell 1 VP for a coin",
             ConvertCoinsToVictoryPoint m => $"{Name(m.Player)} buy 1 VP with coins",
             TakeCultStep m => $"{Name(m.Player)} take a cult step on {m.Track}",
+            DeclineCultStep m => $"{Name(m.Player)} give up their cult step",
+            TakeHeldPower m => $"{Name(m.Player)} take their stronghold's power",
+            TakeTopStep m => $"{Name(m.Player)} use a key to reach the top of {m.Track}",
             ExchangeWorkersForPriests m => $"{Name(m.Player)} exchange {Plural(m.Workers, "worker")} for priests",
             FinishPriestExchange m => $"{Name(m.Player)} stop exchanging workers for priests",
             PayCultSteps m => First<TrackDescended>() is TrackDescended d
@@ -354,12 +444,12 @@ public static class GameLog
     // income and cult rewards, rounds ending and beginning, the game ending. What the action's own text already says
     // (its own cost or gain) is left out, as are the separate coins, power and priests that income and cult rewards
     // are made of.
-    private static List<string> Results(Move move, Faction? actor, IReadOnlyList<GameEvent> events)
+    private static List<LogPart> Results(Move move, Faction? actor, IReadOnlyList<GameEvent> events)
     {
-        var results = new List<string?>();
+        var results = new List<LogPart?>();
         var points = new Dictionary<(Faction Faction, string? Source), int>(); // index into results
         var pointTotals = new Dictionary<(Faction, string?), int>();
-        bool skipActorPoints = move is AcceptPower or AnswerTokenOffer or ConvertCoinsToVictoryPoint;
+        bool skipActorPoints = move is AcceptPower or AnswerTokenOffer or ConvertCoinsToVictoryPoint or ConvertVictoryPointToCoin;
         var paid = new HashSet<Faction>(events.Select(e => e switch
         {
             IncomeReceived income => income.Faction,
@@ -373,6 +463,7 @@ public static class GameLog
             PlacePriest m => m.Track,
             BonusCultStep m => m.Track,
             TakeCultStep m => m.Track,
+            TakeTopStep m => m.Track,
             _ => null,
         };
 
@@ -443,21 +534,37 @@ public static class GameLog
                 if (!points.ContainsKey(key))
                 {
                     points[key] = results.Count;
-                    results.Add(""); // filled in below, once every point is counted
+                    results.Add(null); // filled in below, once every point is counted
                 }
                 pointTotals[key] = pointTotals.GetValueOrDefault(key) + gained.Amount;
             }
             else if (text is not null)
-                results.Add(text);
+                results.Add(new LogPart(text, EventFaction(e),
+                    e is PowerOffered ? PartKind.Offer
+                    : e is PowerGained { Source: PowerSource.NeighbouringBuild } ? PartKind.OfferGain : PartKind.Other));
         }
         foreach (var (key, at) in points)
         {
             int amount = pointTotals[key];
-            results[at] = amount == 0 ? null : $"{(key.Faction == actor ? "" : Name(key.Faction) + " ")}{(amount > 0 ? "+" : "−")}"
-                + $"{Math.Abs(amount)} VP{(key.Source is null ? "" : $" ({key.Source})")}";
+            results[at] = amount == 0 ? null : new LogPart(
+                $"{(key.Faction == actor ? "" : Name(key.Faction) + " ")}{(amount > 0 ? "+" : "−")}"
+                + $"{Math.Abs(amount)} VP{(key.Source is null ? "" : $" ({key.Source})")}",
+                key.Faction, key.Source == OfferPointsSource ? PartKind.OfferGain : PartKind.Other);
         }
-        return results.OfType<string>().ToList();
+        return results.OfType<LogPart>().ToList();
     }
+
+    private const string OfferPointsSource = "power"; // PointsSource for the VP an accepted offer cost
+
+    // The faction an event is about (null: nobody in particular).
+    private static Faction? EventFaction(GameEvent e) => e switch
+    {
+        PriestGained g => g.Priest.Owner,
+        LandscapePlaced p => p.Landscape.Owner,
+        PlanningStarted or TurnOrderStepBegan or RoundEnded or RoundStarted or GameEnded => null,
+        _ => e.GetType().GetProperty("Faction")?.GetValue(e) as Faction?
+             ?? e.GetType().GetProperty("Player")?.GetValue(e) as Faction?,
+    };
 
     // Where points came from, in words (from the area the points' light starts at: VictoryPointsGained.Source).
     private static string? PointsSource(PointsArea? area, int amount) => area switch
@@ -469,7 +576,7 @@ public static class GameLog
         PointsArea.Shipping => "shipping upgrade",
         PointsArea.Spades => "spade upgrade",
         PointsArea.BowlThree => "power token",
-        PointsArea.OnHex => amount < 0 ? "power" : "stronghold", // a power offer's cost, or a stronghold's ability
+        PointsArea.OnHex => amount < 0 ? OfferPointsSource : "stronghold", // a power offer's cost, or a stronghold's ability
         PointsArea.OnBridge => "bridge",
         PointsArea.KeyOn => "town",
         PointsArea.Landscape => "landscape",

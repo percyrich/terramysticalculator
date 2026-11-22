@@ -92,6 +92,9 @@ public sealed class History
     // A move the rules accept moves the player on (refused moves never enter the history):
     //   to a position already there after this one with the same state (its redo line, the game line, a side line
     //     planned before): no new position, so a game played through by hand stays on its line;
+    //   else, on the game line, further along it, if the move reaches a position the line gets to a few records later
+    //     (e.g. a power action or conversion clicked with its burns, which the line has one by one): the records
+    //     between count as played;
     //   else back onto the game line, if the move reaches a position on it (e.g. free actions in another order);
     //   else to a new position: repeated edits of one value (Rules.MergeKey) merge into the last position while it is
     //     the end of its line and has no bookmark (one record, one undo step, every move kept); a line left behind
@@ -108,6 +111,11 @@ public sealed class History
             MarkDivergence(before, existing);
             before.Next = existing;
             _current = existing;
+            return result;
+        }
+        if (_gameEnd is not null && _gameLine.Contains(before) && GamePositionAhead(before, result.State) is Position ahead)
+        {
+            MakeCurrent(ahead);
             return result;
         }
         if (_gameEnd is not null && !_gameLine.Contains(before) && GamePositionWith(result.State) is Position rejoined)
@@ -203,6 +211,15 @@ public sealed class History
 
     private Position? GamePositionWith(GameState state) =>
         _gameLine.FirstOrDefault(p => SameState(p.State, state));
+
+    // The first position after `from` along the game line with this state (from on the game line).
+    private Position? GamePositionAhead(Position from, GameState state)
+    {
+        for (Position? p = from.Children.FirstOrDefault(_gameLine.Contains); p is not null; p = p.Children.FirstOrDefault(_gameLine.Contains))
+            if (SameState(p.State, state))
+                return p;
+        return null;
+    }
 
     // Cheap fields first: the full comparison is deep.
     private static bool SameState(GameState a, GameState b) =>

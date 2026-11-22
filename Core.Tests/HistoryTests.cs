@@ -119,6 +119,23 @@ public class HistoryTests
     }
 
     [Fact]
+    public void A_conversion_burning_first_stays_on_a_game_line_that_burned_one_at_a_time()
+    {
+        var solo = Play(SoloStart);
+        var history = new History(solo.WithPlayer(solo[G] with { Power = new Power(0, 4, 1) }));
+        history.Apply(new BurnPower(G));
+        history.Apply(new BurnPower(G));
+        history.Apply(new ConvertPowerToWorker(G));
+        history.MarkGameLine();
+        Assert.True(history.JumpToPosition(history.Log()[0].Position));
+
+        Assert.True(history.Apply(new ConvertPowerToWorker(G, BurnFirst: true)).Accepted); // the two burns and the conversion at once
+        Assert.True(history.GameLineStatus!.OnLine);
+        Assert.Equal(3, history.LogIndex); // at the game line's conversion, its burns passed
+        Assert.Equal(4, history.Log().Count);
+    }
+
+    [Fact]
     public void The_log_adds_and_removes_bookmarks_but_never_session_start()
     {
         var history = new History(GameState.Initial);

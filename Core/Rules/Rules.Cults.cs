@@ -131,34 +131,44 @@ public static partial class Rules
     // Moves the player `steps` up a track (steps never go down). The top step needs a key, which is
     // spent, and only one player may be on it; without both, the climb stops one short (TM).
     // Steps beyond the top are lost. Track power rewards are separate (TrackRewards).
-    private static GameState ClimbTrack(GameState state, Faction faction, Track track, int steps, List<GameEvent> events, out int after)
+    // Without a key, in the player's own action, with a town still to be formed: the key that town brings is used at
+    // once (KeysBorrowed; Andrew 2026-11-22, as BGA: "is founding a Town this turn and can use the key immediately",
+    // 854471936 #404), so the top step's power comes now. Not during a town's own rewards (mayBorrow false): one town
+    // is finished before the next begins.
+    private static GameState ClimbTrack(GameState state, Faction faction, Track track, int steps, List<GameEvent> events, out int after,
+        bool mayBorrow = true)
     {
         var player = state[faction];
         var before = player.TrackSteps[(int)track];
         after = Math.Min(Config.TrackMax, before + steps);
         var spendsKey = false;
+        var borrows = false;
         var held = player.TopStepsHeld;
         if (after == Config.TrackMax && before < Config.TrackMax)
         {
             var topTaken = state.Players.Any(other => other.Faction != faction && other.TrackSteps[(int)track] == Config.TrackMax);
-            if (topTaken || player.Keys == 0)
+            var ownAction = state.Phase == Phase.Playing && state.ActivePlayer == faction;
+            if (!topTaken && player.Keys == 0 && mayBorrow && ownAction && FormableTowns(state, faction).Count > player.KeysBorrowed)
+                borrows = true;
+            else if (topTaken || player.Keys == 0)
             {
                 after = Math.Max(before, Config.TrackMax - 1);
-                // Without a key, in the player's own action: the step onto 10 waits in case a town this action brings
-                // one (the designer's ruling: a favour's steps may be taken after the town it helped to form).
-                if (!topTaken && state.Phase == Phase.Playing && state.ActivePlayer == faction && state.ActionTaken
-                    && (held is null || !held.Value.Contains(track)))
+                // Without a key and no town to form yet, in the player's own action: the step onto 10 waits in case a
+                // town later in the action brings one (the designer's ruling: a step may be taken after the town it
+                // helped to form), e.g. the Acolytes' steps for a spade before the dwelling that makes the town.
+                if (!topTaken && ownAction && state.ActionTaken && (held is null || !held.Value.Contains(track)))
                     held = (held ?? ValueList<Track>.Empty).Add(track);
             }
             else
                 spendsKey = true;
         }
-        if (spendsKey)
+        if (spendsKey || borrows)
             events.Add(new KeySpent(faction, track));
         var next = state.WithPlayer(player with
         {
             TrackSteps = player.TrackSteps.SetItem((int)track, after),
             Keys = player.Keys - (spendsKey ? 1 : 0),
+            KeysBorrowed = player.KeysBorrowed + (borrows ? 1 : 0),
             TopStepsHeld = held,
         });
         // A faction that moves arrives last on its new step.
@@ -173,10 +183,14 @@ public static partial class Rules
 
     // The steps onto 10 held this action for want of a key (TopStepsHeld), taken now that a town has brought one: one
     // key each, in the order held; those still without a key keep waiting.
+    // With fewer keys than such tracks the player chooses instead (TopStepChoiceOwed, then TakeTopStep).
     private static GameState ReleaseHeldTopSteps(GameState state, Faction faction, List<GameEvent> events)
     {
         if (state[faction].TopStepsHeld is not { Count: > 0 } held)
             return state;
+        var keys = state[faction].Keys;
+        if (keys > 0 && held.Count(track => TopStepOpen(state, faction, track)) > keys)
+            return state.WithPlayer(state[faction] with { TopStepChoiceOwed = true });
         var next = state.WithPlayer(state[faction] with { TopStepsHeld = null });
         var waiting = new List<Track>();
         foreach (var track in held)
@@ -204,8 +218,37 @@ public static partial class Rules
         if (after.Phase == Phase.Playing && after.ActivePlayer == before.ActivePlayer && !(before.ActionTaken && !after.ActionTaken))
             return after;
         foreach (var player in after.Players.Where(p => p.TopStepsHeld is not null).ToList())
-            after = after.WithPlayer(player with { TopStepsHeld = null });
+            after = after.WithPlayer(player with { TopStepsHeld = null, TopStepChoiceOwed = false });
         return after;
+    }
+
+    // One step from 9 onto the top of this track is open to the faction: they are on 9 and nobody else is on 10.
+    private static bool TopStepOpen(GameState state, Faction faction, Track track) =>
+        state[faction].TrackSteps[(int)track] == Config.TrackMax - 1
+        && !state.Players.Any(other => other.Faction != faction && other.TrackSteps[(int)track] == Config.TrackMax);
+
+    // The key goes on this track: the step onto 10 held there is taken. The steps still held then wait for the keys
+    // left (another choice if those are still too few).
+    private static MoveResult ApplyTakeTopStep(GameState state, TakeTopStep move)
+    {
+        if (CheckTurn(state, move.Player) is { } refusal)
+            return refusal;
+        var player = state[move.Player];
+        if (!player.TopStepChoiceOwed || player.TopStepsHeld is not { } held || player.Keys == 0)
+            return MoveResult.Rejected(state, $"The {Name(move.Player)} have no key to place on a track.");
+        if (!held.Contains(move.Track) || !TopStepOpen(state, move.Player, move.Track))
+            return MoveResult.Rejected(state, $"The {Name(move.Player)} cannot take their key to the top of {move.Track}: choose "
+                + string.Join(" or ", held.Where(track => TopStepOpen(state, move.Player, track))) + ".");
+
+        var events = new List<GameEvent>();
+        var rest = held.RemoveAt(held.IndexOf(move.Track));
+        var next = state.WithPlayer(player with { TopStepChoiceOwed = false, TopStepsHeld = rest.Count == 0 ? null : rest });
+        var before = player.TrackSteps[(int)move.Track];
+        next = ClimbTrack(next, move.Player, move.Track, 1, events, out var after);
+        events.Insert(0, new TrackAdvanced(move.Player, move.Track, before, after));
+        next = TrackRewards(next, move.Player, before, after, events);
+        next = ReleaseHeldTopSteps(next, move.Player, events);
+        return MoveResult.Ok(next, events, MoveResult.NoIssues);
     }
 
     // Power for every reward step passed on the way up a track, in order (each is a separate gain).
@@ -271,6 +314,19 @@ public static partial class Rules
         return MoveResult.Ok(next, events, warnings);
     }
 
+    // The Cultists give up the step an opponent's power brought them.
+    private static MoveResult ApplyDeclineCultStep(GameState state, DeclineCultStep move)
+    {
+        if (move.Player != Faction.Cultists)
+            return MoveResult.Rejected(state, $"Only the Cultists may give up their cult step.");
+        if (CheckTurn(state, move.Player) is { } refusal)
+            return refusal;
+        if (state[move.Player].CultStepsOwed == 0)
+            return MoveResult.Rejected(state, $"The {Name(move.Player)} have no cult step to give up.");
+        var next = state.WithPlayer(state[move.Player] with { CultStepsOwed = state[move.Player].CultStepsOwed - 1 });
+        return MoveResult.Ok(next, new List<GameEvent>(), MoveResult.NoIssues);
+    }
+
     // Acolytes: the steps owed for a hex just made Volcano, paid down one track that has them all.
     private static MoveResult ApplyPayCultSteps(GameState state, PayCultSteps move)
     {
@@ -304,7 +360,7 @@ public static partial class Rules
     {
         // The Ice Maidens take theirs during faction choice, straight after their starting terrain.
         var setup = state.Phase == Phase.ChoosingFactions && state.IsInGame(move.Player);
-        if (!setup && CheckTurn(state, move.Player) is { } refusal)
+        if (!setup && (CheckTurn(state, move.Player) ?? CheckOffersAnswered(state)) is { } refusal)
             return refusal;
 
         var player = state[move.Player];

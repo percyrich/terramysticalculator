@@ -421,7 +421,10 @@ public partial class Main : Control
 
         // Playing: whatever is owed first, then the turn itself.
         if (Owing(p => p.TokenOfferOwed) is PlayerState shifters)
-            return $"{Who(shifters.Faction)} may pay 1 VP for a new power token in bowl III: click the lit bowl to accept, anywhere else to decline";
+            return $"{Who(shifters.Faction)} may pay 1 VP for a new power token in bowl III: click the lit bowl to accept, anywhere else (or confirm) to decline";
+        // The power offers are part of the action: answered before its rewards (favour, town, held power) are taken.
+        if (state.PowerOffers.Count > 0)
+            return $"{Who(state.PowerOffers[0].Player)} may gain power: click the chip to accept, anywhere else on the map to decline";
         if (Owing(p => p.FavoursOwed > 0) is PlayerState favoured)
             return $"{Who(favoured.Faction)} must choose a favour";
         if (me.CultStepsToPay > 0)
@@ -438,12 +441,18 @@ public partial class Main : Control
             return $"{Who(me.Faction)} must place their bridge: drag it from their supply to a highlighted spot";
         if (Rules.FormableTowns(state, me.Faction).Count > 0)
             return $"{Who(me.Faction)} must form a town: drag a key token onto a highlighted hex";
-        if (state.PowerOffers.Count > 0)
-            return $"{Who(state.PowerOffers[0].Player)} may gain power: click the chip to accept, anywhere else on the map to decline";
         if (Owing(p => p.CultStepsOwed > 0) is PlayerState stepper)
-            return $"{Who(stepper.Faction)} must take a cult step: click a track";
+            return stepper.Faction == Faction.Cultists
+                ? $"{Who(stepper.Faction)} must take a cult step: click a track (or click confirm to give it up)"
+                : $"{Who(stepper.Faction)} must take a cult step: click a track";
+        if (me.TopStepChoiceOwed)
+            return $"{Who(me.Faction)} must choose where their key goes: click a track to take to the top";
         if (me.PassTileOwed)
             return $"{Who(me.Faction)} must pick a new pass tile from the bank";
+        if ((me.PowerHeld > 0 || me.TokensHeld > 0) && state.PowerOffers.Count == 0)
+            return me.PowerHeld > 0
+                ? $"{Who(me.Faction)} may take their stronghold's {me.PowerHeld} power: click confirm (or it comes when the turn ends)"
+                : $"{Who(me.Faction)} may take their stronghold's {me.TokensHeld} power tokens: click confirm (or they come when the turn ends)";
         if (me.PriestExchangesLeft > 0)
             return $"{Who(me.Faction)} may exchange up to {me.PriestExchangesLeft} more workers for priests: drag workers onto their priests (or click confirm when done)";
         if (state.ActionsOwed == 2)

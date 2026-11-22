@@ -379,6 +379,7 @@ public static partial class Rules
         return state.WithPlayer(state[faction] with { SpadesOwed = 0, ArchitectsBuildHex = null }) with
         {
             SpadedHexes = ValueList<int>.Empty, LandscapeBatchHex = null, SpadeAnchorHex = null, ShippingBoost = false,
+            RewardSpades = false,
         };
     }
 }

@@ -37,19 +37,20 @@ public static partial class Rules
         return MoveResult.Ok(next, events, warnings);
     }
 
-    // Held power and tokens come once no power offer from the build is still waiting, as on BGA: before a town still to
-    // form if the offers were answered first (the Children of the Wyrm in 717052298), after it if not (the Alchemists in
-    // 241070597); with no offer, at once.
-    private static GameState ReleaseHeldPowerWhenDone(GameState state, List<GameEvent> events)
+    // The stronghold's power and tokens, a reward after the action (Andrew 2026-11-23): taken when the player chooses, once
+    // the action's power offers are answered, before, between or after the other rewards and conversions (as on BGA:
+    // after the town and a conversion in 241070597, before the town in 717052298); at the latest at End turn.
+    private static MoveResult ApplyTakeHeldPower(GameState state, TakeHeldPower move)
     {
-        foreach (var player in state.Players.Where(p => p.PowerHeld > 0 || p.TokensHeld > 0).ToList())
-            if (!state.PowerOffers.Any(offer => offer.Builder == player.Faction))
-                state = ReleaseHeldPower(state, player.Faction, events);
-        return state;
+        if ((CheckTurn(state, move.Player) ?? CheckOffersAnswered(state)) is { } refusal)
+            return refusal;
+        if (state[move.Player].PowerHeld == 0 && state[move.Player].TokensHeld == 0)
+            return MoveResult.Rejected(state, $"The {Name(move.Player)} have no stronghold power to take.");
+        var events = new List<GameEvent>();
+        return MoveResult.Ok(ReleaseHeldPower(state, move.Player, events), events, MoveResult.NoIssues);
     }
 
-    // Power the action gave for its end (PlayerState.PowerHeld), gained once it is done (ReleaseHeldPowerWhenDone), at
-    // the latest as the turn ends.
+    // Power held for after the action (PlayerState.PowerHeld): TakeHeldPower, or End turn for what is left.
     // New tokens held (PlayerState.TokensHeld) go into bowl 1 first.
     private static GameState ReleaseHeldPower(GameState state, Faction faction, List<GameEvent> events)
     {

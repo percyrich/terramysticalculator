@@ -349,8 +349,8 @@ public partial class Main
 
     // ---------- Faction abilities: clicks ----------
 
-    // Handles a press on: a track while the Acolytes pay steps for a Volcano, or while the Cultists (or the Acolytes)
-    // owe a cult step; the active player's book action (the Engineers' bridge); the Alchemists' VP (sells 1 for a coin)
+    // Handles a press on: a track while the Acolytes pay steps for a Volcano, while the Cultists (or the Acolytes)
+    // owe a cult step, or while a key's track is to be chosen; the active player's book action (the Engineers' bridge); the Alchemists' VP (sells 1 for a coin)
     // or coins (picked up, to drop on their VP: 2 for 1 VP).
     // Returns false if the press was on none of these.
     private bool OnPressFactionAbilities(Vector2 mouse)
@@ -368,6 +368,12 @@ public partial class Main
         if (state[active].CultStepsOwed > 0 && TrackAt(mouse) is Track track)
         {
             Submit(new TakeCultStep(active, track));
+            return true;
+        }
+        // Fewer keys than tracks waiting at 9 for one (a town's steps on every track): the track the key takes up.
+        if (state[active].TopStepChoiceOwed && TrackAt(mouse) is Track top)
+        {
+            Submit(new TakeTopStep(active, top)); // refused with a reason if that track isn't waiting
             return true;
         }
 
@@ -445,7 +451,7 @@ public partial class Main
         Faction? active = state.Phase is Phase.Playing or Phase.RoundEndSpades ? state.ActivePlayer : null;
 
         // A cult step owed (the Cultists', the Acolytes'): every track lit yellow, one glint, until one is clicked.
-        // The Acolytes paying for a Volcano: only the tracks with enough steps.
+        // The Acolytes paying for a Volcano: only the tracks with enough steps. A key to place: the tracks it can take up.
         var lit = new HashSet<Track>();
         if (active is Faction stepper)
         {
@@ -454,6 +460,8 @@ public partial class Main
                 lit.UnionWith(Rules.TracksThatCanPay(state, stepper, player.CultStepsToPay));
             else if (player.CultStepsOwed > 0 || (player.WitchesTownBonusHex is not null && _townStepsChosen)) // MainLandscapes.cs
                 lit.UnionWith(AllTracks);
+            else if (player.TopStepChoiceOwed && player.TopStepsHeld is { } held) // a key to place: the tracks waiting at 9
+                lit.UnionWith(held.Where(track => player.TrackSteps[(int)track] == Config.TrackMax - 1));
         }
         lit.UnionWith(FanTracksLit(state)); // the Djinni's starting steps and lamp (MainFanFactions.cs)
         foreach (Track track in AllTracks)

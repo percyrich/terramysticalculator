@@ -20,20 +20,23 @@ public partial class TopPanelLog : Control
     public enum RowState { Played, Here, Later, Other }
 
     // One row: its text, its number (none: no "n. "), how far in, whether it opens a line ("(Alternate)"), its state,
-    // whether it is bookmarked and whether that bookmark is locked (Session start).
-    public sealed record Row(string Text, int? Number, int Depth, bool Opens, RowState State, bool Bookmarked, bool Locked);
+    // whether it is bookmarked and whether that bookmark is locked (Session start). Segments: the text in colour
+    // (LogRichText; null: all of it in TextColour); the number and "(Alternate)" are in PrefixColour.
+    public sealed record Row(string Text, int? Number, int Depth, bool Opens, RowState State, bool Bookmarked, bool Locked,
+        IReadOnlyList<LogSegment> Segments = null);
 
     [Signal] public delegate void BookmarkToggledEventHandler(int index);
     [Signal] public delegate void JumpRequestedEventHandler(int index);
 
     public float RowHeight { get; set; } = 34;
-    public int FontSize { get; set; } = 22;
+    public int FontSize { get; set; } = 24; // (coloured text with a stroke wants it a little bigger)
     public int ButtonSize { get; set; } = 26;
     public float Embolden { get; set; } = -0.3f;       // the rows' weight (the default font is semibold)
     public float CurrentEmbolden { get; set; } = 0.3f; // the latest record played
     public Color TextColour { get; set; } = new("e4ebf1");
-    public Color RedoColour { get; set; } = new(0.86f, 0.89f, 0.92f, 0.4f);
-    public Color OtherColour { get; set; } = new(0.86f, 0.89f, 0.92f, 0.55f); // a row on another line (the notes)
+    public Color PrefixColour { get; set; } = IconArt.PowerPurple;       // a row's number and "(Alternate)"
+    public float RedoOpacity { get; set; } = 0.45f;                    // a row to be redone (and slanted)
+    public float OtherOpacity { get; set; } = 0.6f;                    // a row on another line (the notes)
     public float IndentWidth { get; set; } = 30;
     public bool Ascending { get; set; }                                       // oldest at the top (the notes)
     public Color CurrentFill { get; set; } = new(1, 1, 1, 0.1f);
@@ -48,7 +51,7 @@ public partial class TopPanelLog : Control
     private readonly ScrollContainer _scroll = new() { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
     private readonly VBoxContainer _rows = new();
     private IReadOnlyList<Row> _shown = new List<Row>();
-    private LabelSettings _plain, _current, _redo, _other;
+    private Font _plainFont, _currentFont, _redoFont;
     private Control _scrollTo;
 
     public TopPanelLog()
@@ -101,21 +104,16 @@ public partial class TopPanelLog : Control
             row.QueueFree();
         }
         Font font = ThemeDB.FallbackFont;
-        LabelSettings Settings(float embolden, bool slanted, Color colour) => new()
+        Font Variation(float embolden, bool slanted) => new FontVariation
         {
-            Font = new FontVariation
-            {
-                BaseFont = font,
-                VariationEmbolden = embolden,
-                VariationTransform = slanted ? new Transform2D(1, 0.2f, 0, 1, 0, 0) : Transform2D.Identity,
-            },
-            FontSize = FontSize,
-            FontColor = colour,
+            BaseFont = font,
+            VariationEmbolden = embolden,
+            VariationTransform = slanted ? new Transform2D(1, 0.2f, 0, 1, 0, 0) : Transform2D.Identity,
         };
-        _plain ??= Settings(Embolden, false, TextColour);
-        _current ??= Settings(CurrentEmbolden, false, TextColour);
-        _redo ??= Settings(Embolden, true, RedoColour);
-        _other ??= Settings(Embolden, false, OtherColour);
+        _plainFont ??= Variation(Embolden, false);
+        _currentFont ??= Variation(CurrentEmbolden, false);
+        _redoFont ??= Variation(Embolden, true);
+        var dark = new Color(0, 0, 0, 0.85f);
         Control current = null;
         int count = _shown.Count;
         for (var n = 0; n < count; n++) // the most recent first, unless Ascending
@@ -148,29 +146,37 @@ public partial class TopPanelLog : Control
             jump.Pressed += () => EmitSignal(SignalName.JumpRequested, index);
             line.AddChild(jump);
 
-            string whole = (shown.Opens ? "(Alternate) " : "") + (shown.Number is int number ? $"{number}. {shown.Text}" : shown.Text);
-            var text = new Label
+            string prefix = (shown.Opens ? "(Alternate) " : "") + (shown.Number is int number ? $"{number}. " : "");
+            var segments = new List<LogSegment>();
+            if (prefix.Length > 0)
+                segments.Add(new LogSegment(prefix, PrefixColour, Colors.White));
+            segments.AddRange(shown.Segments ?? LogRichText.Single(shown.Text, TextColour, dark));
+            string whole = LogRichText.Plain(segments);
+            Font rowFont = shown.State switch
             {
-                Text = whole,
-                LabelSettings = shown.State switch
-                {
-                    RowState.Here => _current,
-                    RowState.Later => _redo,
-                    RowState.Other => _other,
-                    _ => _plain,
-                },
-                VerticalAlignment = VerticalAlignment.Center,
-                TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis, // only a word too long for a line
-                ClipText = true,
-                TooltipText = whole,
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                MouseFilter = MouseFilterEnum.Pass,
+                RowState.Here => _currentFont,
+                RowState.Later => _redoFont,
+                _ => _plainFont,
             };
+            RichTextLabel text = LogRichText.Make();
+            LogRichText.Style(text, rowFont, FontSize);
+            text.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            text.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+            text.TooltipText = whole;
+            text.Modulate = Colors.White with
+            {
+                A = shown.State switch { RowState.Later => RedoOpacity, RowState.Other => OtherOpacity, _ => 1f },
+            };
+            text.Text = LogRichText.BbCode(segments, new[] { whole }, segments[0]);
             // Too long for the row: a new line before a " · " (or between words), the row growing to hold them.
+            float laidOut = -1;
             text.Resized += () =>
             {
-                text.Text = string.Join("\n", LogBreaks.Lines(whole, text.LabelSettings.Font, text.LabelSettings.FontSize, text.Size.X));
-                text.TooltipText = text.Text;
+                float width = text.Size.X - 2 * LogRichText.OutlineSize;
+                if (Mathf.IsEqualApprox(width, laidOut) || width <= 0)
+                    return;
+                laidOut = width;
+                text.Text = LogRichText.BbCode(segments, LogBreaks.Lines(whole, rowFont, FontSize, width), segments[0]);
             };
             line.AddChild(text);
             _rows.AddChild(row);

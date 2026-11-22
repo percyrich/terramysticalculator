@@ -319,6 +319,18 @@ public class FactionAbilityTests
         Assert.True(Rules.Apply(spent, new BuildOnSpadedHex(new Piece(H, PieceKind.Dwelling, 2), 4)).Accepted);
     }
 
+    // Andrew 2026-11-23: the stronghold's spades are a reward after the action, so conversions may come between them.
+    [Fact]
+    public void The_Halflings_may_convert_between_their_stronghold_spades()
+    {
+        var built = PlayFrom(WithTradingPost(Play(Solo(H, 16, 107)), H, 16), UpgradeTo(H, PieceKind.Stronghold, 0, 16));
+        built = built.WithPlayer(built[H] with { Workers = 3 });
+        var spent = PlayFrom(built, new SpendSpades(H, 4, Terrain.Plains));
+        var converted = PlayFrom(spent, new ConvertWorkerToCoin(H));
+        Assert.Equal(spent[H].Coins + 1, converted[H].Coins);
+        Assert.True(Rules.Apply(PlayFrom(converted, new SpendSpades(H, 3, Terrain.Plains)), new ConvertWorkerToCoin(H)).Accepted);
+    }
+
     [Fact]
     public void Halflings_upgrade_spades_for_two_workers_a_coin_and_a_priest()
     {
@@ -356,6 +368,21 @@ public class FactionAbilityTests
         Assert.Equal(1, s[Cu].TrackSteps[(int)Track.Water]);
         Assert.Equal(0, s[Cu].CultStepsOwed);
         Assert.True(Rules.Apply(s, End(Cu)).Accepted);
+    }
+
+    // As on BGA (854471936 #316): "declines advancing on a Cult track (Cultists Ability)".
+    [Fact]
+    public void The_Cultists_may_give_up_their_cult_step()
+    {
+        var s = PlayFrom(CultistsBuiltNextToWitches(), Accept(W));
+        var steps = s[Cu].TrackSteps;
+        Assert.Equal("Only the Cultists may give up their cult step.", Assert.Single(Rules.Apply(s, new DeclineCultStep(W)).Issues).Message);
+
+        s = PlayFrom(s, new DeclineCultStep(Cu));
+        Assert.Equal(0, s[Cu].CultStepsOwed);
+        Assert.Equal(steps, s[Cu].TrackSteps);
+        Assert.True(Rules.Apply(s, End(Cu)).Accepted);
+        Assert.False(Rules.Apply(s, new DeclineCultStep(Cu)).Accepted);
     }
 
     [Fact]
@@ -409,7 +436,7 @@ public class FactionAbilityTests
     }
 
     [Fact]
-    public void The_Alchemists_stronghold_power_comes_once_the_power_offers_are_answered()
+    public void The_Alchemists_stronghold_power_is_taken_after_the_power_offers()
     {
         // Witches on 9 and 60, with a trading post put on 8, next to the Alchemists' trading post on 7: offered 2 power.
         const Faction W = Faction.Witches;
@@ -420,10 +447,31 @@ public class FactionAbilityTests
         Assert.Equal(s[Al].Power, built[Al].Power); // not yet: held for the end of the action
         Assert.Equal(Config.AlchemistsStrongholdPower, built[Al].PowerHeld);
 
+        Assert.Equal("Waiting for the Witches to accept or decline power.", Assert.Single(Rules.Apply(built, new TakeHeldPower(Al)).Issues).Message);
+
+        // Andrew 2026-11-23: a reward after the action, taken when the Alchemists choose (241070597: after a conversion).
         var answered = PlayFrom(built, Decline(W));
-        Assert.NotEqual(s[Al].Power, answered[Al].Power);
-        Assert.Equal(0, answered[Al].PowerHeld);
-        Assert.Equal(answered[Al].Power, PlayFrom(answered, End(Al))[Al].Power); // gained once only
+        Assert.Equal(s[Al].Power, answered[Al].Power);
+        Assert.Equal(Config.AlchemistsStrongholdPower, answered[Al].PowerHeld);
+        var taken = PlayFrom(answered, new TakeHeldPower(Al));
+        Assert.NotEqual(s[Al].Power, taken[Al].Power);
+        Assert.Equal(0, taken[Al].PowerHeld);
+        Assert.Equal(taken[Al].Power, PlayFrom(taken, End(Al))[Al].Power); // gained once only
+        Assert.Equal(taken[Al].Power, PlayFrom(answered, End(Al))[Al].Power); // not taken: at End turn
+    }
+
+    // Andrew 2026-11-23: the power offers are part of the action; its rewards (a favour, a town, the held power) wait.
+    [Fact]
+    public void Rewards_after_the_action_wait_for_its_power_offers()
+    {
+        const Faction W = Faction.Witches;
+        var s = WithTradingPost(Play(StartWith(new[] { Al, W }, 7, 9, 60, 101)), Al, 7);
+        s = s with { Map = s.Map.SetItem(8, new Piece(W, PieceKind.TradingPost, 0)) };
+        var built = PlayFrom(s, UpgradeTo(Al, PieceKind.Stronghold, 0, 7));
+        var owing = built.WithPlayer(built[Al] with { FavoursOwed = 1 });
+        Assert.Equal("Waiting for the Witches to accept or decline power.", Assert.Single(Rules.Apply(owing, new TakeFavour(Al, 0)).Issues).Message);
+        Assert.False(Rules.Apply(owing, new ConvertWorkerToCoin(Al)).Accepted);
+        Assert.True(Rules.Apply(PlayFrom(owing, Decline(W)), new TakeFavour(Al, 0)).Accepted);
     }
 
     [Fact]

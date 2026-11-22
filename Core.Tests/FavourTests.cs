@@ -37,6 +37,16 @@ public class FavourTests
         Assert.Equal("The Giants must take their favour before ending their turn.", Assert.Single(result.Issues).Message);
     }
 
+    // Andrew 2026-11-22: the favour is a reward after the action, so conversions may come before it.
+    [Fact]
+    public void A_favour_still_to_take_doesn_t_stop_conversions()
+    {
+        var s = Play(TempleJustBuilt);
+        var converted = PlayFrom(s, new ConvertWorkerToCoin(G));
+        Assert.Equal(s[G].Coins + 1, converted[G].Coins);
+        Assert.Equal("The Giants must take their favour before ending their turn.", Assert.Single(Rules.Apply(converted, End(G)).Issues).Message);
+    }
+
     [Fact]
     public void Taking_a_favour_moves_the_top_tile_to_the_player()
     {

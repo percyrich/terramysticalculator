@@ -46,10 +46,47 @@ public class GameLogTests
             new LogEntry(2, new BurnPower(G), r1.State, r2.State, r2.Events, null),
             new LogEntry(3, new ConvertPowerToCoin(G), r2.State, r3.State, r3.Events, null),
         };
-        Assert.Equal(new GameLog.LogLine(2, "Giants burn 2pw. Giants do conversions: 1pw → 1c"),
-            Assert.Single(GameLog.Lines(entries, 3, GameLog.Describe)));
-        Assert.Equal(new GameLog.LogLine(1, "Giants burn 2pw"), GameLog.Lines(entries, 2, GameLog.Describe)[0]); // the last one undone
-        Assert.Equal(2, GameLog.Lines(entries, 2, GameLog.Describe).Count);
+        GameLog.LogLine all = Assert.Single(GameLog.Lines(entries, 3, GameLog.Parts));
+        Assert.Equal((2, "Giants burn 2pw. Giants do conversions: 1pw → 1c"), (all.Index, all.Text));
+        Assert.Equal(G, Assert.Single(all.Parts).Faction);
+        GameLog.LogLine undone = GameLog.Lines(entries, 2, GameLog.Parts)[0]; // the last one undone
+        Assert.Equal((1, "Giants burn 2pw"), (undone.Index, undone.Text));
+        Assert.Equal(2, GameLog.Lines(entries, 2, GameLog.Parts).Count);
+    }
+
+    [Fact]
+    public void A_build_and_the_answers_to_its_power_offers_are_one_line_once_answered()
+    {
+        const Faction En = Faction.Engineers;
+        var s = Play(TwoPlayerStart);
+        // Distinct states (as positions have), so the records follow one another.
+        GameState a = s, b = s with { Round = s.Round }, c = s with { Round = s.Round }, d = s with { Round = s.Round };
+        var entries = new[]
+        {
+            new LogEntry(1, new BuildDwelling(new Piece(G, PieceKind.Dwelling, 0), 5), a, b,
+                new GameEvent[] { new PowerOffered(W, 2), new PowerOffered(En, 1) }, null),
+            new LogEntry(2, new AcceptPower(W), b, c, new GameEvent[]
+            {
+                new PowerGained(W, PowerSource.NeighbouringBuild, 2, s[W].Power, s[W].Power),
+                new VictoryPointsGained(W, -1, 19, new PointsArea.OnHex(5)),
+                new PowerOfferAnswered(W, true, 2, 1),
+            }, null),
+            new LogEntry(3, new DeclinePower(En), c, d, new GameEvent[] { new PowerOfferAnswered(En, false, 0, 0) }, null),
+        };
+
+        List<GameLog.LogLine> built = GameLog.Lines(entries, 1, GameLog.Parts); // only the build played: answers to redo
+        Assert.Equal(3, built.Count);
+        Assert.EndsWith(" · Witches offered 2pw · Engineers offered 1pw", built[0].Text);
+
+        GameLog.LogLine accepted = GameLog.Lines(entries, 2, GameLog.Parts)[0];
+        Assert.Equal(1, accepted.Index);
+        Assert.StartsWith("Giants build a dwelling at ", accepted.Text);
+        Assert.EndsWith(" · Witches offered 2pw (yes, −1 VP) · Engineers offered 1pw", accepted.Text); // the −1 VP not again
+
+        GameLog.LogLine all = Assert.Single(GameLog.Lines(entries, 3, GameLog.Parts));
+        Assert.Equal(2, all.Index);
+        Assert.EndsWith(" · Witches offered 2pw (yes, −1 VP) · Engineers offered 1pw (no)", all.Text);
+        Assert.Equal(new Faction?[] { G, W, En }, all.Parts.Select(part => part.Faction).ToArray()); // each part's faction
     }
 
     [Fact]

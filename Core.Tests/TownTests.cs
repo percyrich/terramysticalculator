@@ -169,23 +169,75 @@ public class TownTests
         Assert.Equal(0, after[G].Keys);
     }
 
+    // As on BGA (927967865 #357): one key, and the town's step takes Fire, Water and Air to 10: the player chooses.
     [Fact]
-    public void A_favours_step_onto_10_waits_for_the_key_of_a_town_formed_in_the_same_action()
+    public void With_fewer_keys_than_tracks_reaching_the_top_the_player_chooses_where_the_key_goes()
     {
-        // The designer's ruling: Fire 8, no key; the temple's favour is Fire +2 (towns need 6),
-        // which makes the town; the town's key then lets the favour's second step reach 10.
+        var s = PlayFrom(SevenPower(), new Pass(G, 0));
+        var steps = s[G].TrackSteps.SetItem((int)Track.Fire, 9).SetItem((int)Track.Water, 9).SetItem((int)Track.Air, 9);
+        s = s.WithPlayer(s[G] with { TrackSteps = steps });
+        var town = PlayFrom(s, new FormTown(G, 1, 5)); // 1 key, +1 on every track
+
+        Assert.True(town[G].TopStepChoiceOwed);
+        Assert.Equal(1, town[G].Keys);
+        Assert.Equal(ValueList.Of(9, 9, 1, 9), town[G].TrackSteps);
+        Assert.Equal("The Giants must choose which track their key takes to the top first.", Assert.Single(Rules.Apply(town, End(G)).Issues).Message);
+        Assert.Equal("The Giants cannot take their key to the top of Earth: choose Fire or Water or Air.",
+            Assert.Single(Rules.Apply(town, new TakeTopStep(G, Track.Earth)).Issues).Message);
+
+        var chosen = PlayFrom(town, new TakeTopStep(G, Track.Air));
+        Assert.Equal(ValueList.Of(9, 9, 1, 10), chosen[G].TrackSteps);
+        Assert.Equal(0, chosen[G].Keys);
+        Assert.False(chosen[G].TopStepChoiceOwed);
+        Assert.Equal(town[G].Power.Gain(3), chosen[G].Power); // the top step's reward
+        Assert.True(Rules.Apply(chosen, End(G)).Accepted);
+    }
+
+    [Fact]
+    public void A_key_for_every_track_reaching_the_top_needs_no_choice()
+    {
+        var s = SevenPower();
+        s = s.WithPlayer(s[G] with { TrackSteps = s[G].TrackSteps.SetItem((int)Track.Fire, 9).SetItem((int)Track.Water, 9), Keys = 1 });
+        var town = Rules.Apply(s, new FormTown(G, 1, 5)).State; // a second key
+
+        Assert.False(town[G].TopStepChoiceOwed);
+        Assert.Equal(10, town[G].TrackSteps[(int)Track.Fire]);
+        Assert.Equal(10, town[G].TrackSteps[(int)Track.Water]);
+        Assert.Equal(0, town[G].Keys);
+    }
+
+    [Fact]
+    public void A_favours_step_onto_10_uses_the_key_of_the_town_it_makes_at_once()
+    {
+        // Andrew 2026-11-22 (as BGA, 931629591 #359): Fire 8, no key; the temple's favour is Fire +2 (towns need 6),
+        // which makes the town; its key is used at once, with the top step's power, before the token is taken.
         var six = With(Play(SoloStart), (5, PieceKind.TradingPost), (4, PieceKind.Dwelling), (6, PieceKind.Dwelling), (17, PieceKind.TradingPost));
         six = six.WithPlayer(six[G] with { TrackSteps = six[G].TrackSteps.SetItem((int)Track.Fire, 8), FavoursOwed = 1 }) with { ActionTaken = true };
         Assert.Empty(Rules.FormableTowns(six, G));
 
         var favoured = PlayFrom(six, new TakeFavour(G, 1)); // Fire +2
-        Assert.Equal(9, favoured[G].TrackSteps[(int)Track.Fire]); // no key yet
-        Assert.Equal<ValueList<Track>?>(ValueList.Of(Track.Fire), favoured[G].TopStepsHeld);
+        Assert.Equal(10, favoured[G].TrackSteps[(int)Track.Fire]);
+        Assert.Equal(0, favoured[G].Keys);
+        Assert.Equal(1, favoured[G].KeysBorrowed);
+        Assert.Null(favoured[G].TopStepsHeld);
+        Assert.Equal(six[G].Power.Gain(3), favoured[G].Power); // the top step's reward, now
 
-        var town = PlayFrom(favoured, new FormTown(G, 0, 5)); // 1 key
-        Assert.Equal(10, town[G].TrackSteps[(int)Track.Fire]);
+        var converted = PlayFrom(favoured, new ConvertWorkerToCoin(G)); // a free action between the favour and the town
+        var town = PlayFrom(converted, new FormTown(G, 0, 5)); // 1 key, already used
         Assert.Equal(0, town[G].Keys);
-        Assert.Null(town[G].TopStepsHeld);
+        Assert.Equal(0, town[G].KeysBorrowed);
+    }
+
+    [Fact]
+    public void A_key_is_used_at_once_only_for_a_town_still_to_form()
+    {
+        // Fire 9, no key, no town to form: the step onto 10 waits (TopStepsHeld) for a town later in the action.
+        var s = With(Play(SoloStart), (5, PieceKind.TradingPost), (4, PieceKind.Dwelling));
+        s = s.WithPlayer(s[G] with { TrackSteps = s[G].TrackSteps.SetItem((int)Track.Fire, 8), FavoursOwed = 1 }) with { ActionTaken = true };
+        var favoured = PlayFrom(s, new TakeFavour(G, 1)); // Fire +2
+        Assert.Equal(9, favoured[G].TrackSteps[(int)Track.Fire]);
+        Assert.Equal(0, favoured[G].KeysBorrowed);
+        Assert.Equal<ValueList<Track>?>(ValueList.Of(Track.Fire), favoured[G].TopStepsHeld);
     }
 
     [Fact]

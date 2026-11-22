@@ -32,4 +32,23 @@ public class GameStatsTests
         Assert.Equal(new[] { "Coins", "Workers", "Priests", "Power" },
             stats.Resources.Rows.Where(row => row.IsSection).Select(row => row.Label));
     }
+
+    // 892842578: the Alchemists' VP sold for coins showed under Adjustments; both trades are their ability.
+    [Fact]
+    public void The_Alchemists_trades_count_under_their_faction_ability()
+    {
+        const Faction Al = Faction.Alchemists;
+        var history = new History(GameState.Initial);
+        foreach (var move in Concat(Solo(Al, 7, 101), new Move[]
+                 {
+                     new ConvertVictoryPointToCoin(Al), new ConvertVictoryPointToCoin(Al), new ConvertCoinsToVictoryPoint(Al),
+                 }))
+            Assert.True(history.Apply(move).Accepted, move.ToString());
+        var stats = GameStatistics.Compute(history.Log().Take(history.LogIndex + 1).ToList(), history.Current);
+
+        var abilityRows = stats.VictoryPoints.Rows.Where(row => row.Label == "Faction ability").ToList();
+        Assert.Equal(new int?[] { 1 }, abilityRows[0].Values);  // gains: 2 coins → 1 VP
+        Assert.Equal(new int?[] { -2 }, abilityRows[1].Values); // losses: 2 VP sold
+        Assert.DoesNotContain(stats.VictoryPoints.Rows, row => row.Label == "Adjustments");
+    }
 }

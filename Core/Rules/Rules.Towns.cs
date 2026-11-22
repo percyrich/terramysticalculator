@@ -272,7 +272,7 @@ public static partial class Rules
     private static MoveResult ApplyFormTown(GameState state, FormTown move)
     {
         var startingTown = state.Phase == Phase.PickingPassTiles && state.IsInGame(move.Player) && state[move.Player].StartingTownOwed;
-        if (!startingTown && CheckTurn(state, move.Player) is { } refusal)
+        if (!startingTown && (CheckTurn(state, move.Player) ?? CheckOffersAnswered(state)) is { } refusal)
             return refusal;
         if (move.Token < 0 || move.Token >= KeyTiles.Count)
             return MoveResult.Rejected(state, "There is no such key token.");
@@ -308,10 +308,12 @@ public static partial class Rules
         var player = state[move.Player];
         var events = new List<GameEvent> { new TownFormed(move.Player, tile, move.Hex, town) };
         var warnings = new List<Issue>();
+        var repaid = Math.Min(player.KeysBorrowed, token.Keys); // keys already used on a step onto 10 (ClimbTrack)
         var next = state.WithPlayer(player with
         {
             TownHexes = new ValueList<int>(player.TownHexes.Concat(town).Distinct()),
-            Keys = player.Keys + token.Keys,
+            Keys = player.Keys + token.Keys - repaid,
+            KeysBorrowed = player.KeysBorrowed - repaid,
             StartingTownOwed = false,
         }) with
         {
@@ -338,13 +340,32 @@ public static partial class Rules
             next = GainVictoryPoints(next, move.Player, Factions.TownVictoryPoints(move.Player), events, new PointsArea.Portrait(), key);
         next = Receive(next, move.Player, token.Income + Factions.TownIncome(move.Player), PowerSource.Town, events, warnings);
         if (token.StepsOnEveryTrack > 0)
+        {
+            // More tracks reaching the top (with those held earlier in the action) than keys: each stops on 9, held, and
+            // the player chooses where the keys go (ReleaseHeldTopSteps, then TakeTopStep), as BGA lets them.
+            var keys = next[move.Player].Keys;
+            var heldBefore = next[move.Player].TopStepsHeld ?? ValueList<Track>.Empty;
+            var reaching = Enum.GetValues<Track>().Where(track =>
+                next[move.Player].TrackSteps[(int)track] is var steps && steps < Config.TrackMax && steps + token.StepsOnEveryTrack >= Config.TrackMax
+                && !next.Players.Any(other => other.Faction != move.Player && other.TrackSteps[(int)track] == Config.TrackMax)).ToList();
+            var choose = keys > 0 && reaching.Union(heldBefore.Where(track => TopStepOpen(next, move.Player, track))).Count() > keys;
+            if (choose)
+                next = next.WithPlayer(next[move.Player] with { Keys = 0 });
             foreach (var track in Enum.GetValues<Track>())
             {
                 var before = next[move.Player].TrackSteps[(int)track];
-                next = ClimbTrack(next, move.Player, track, token.StepsOnEveryTrack, events, out var after);
+                next = ClimbTrack(next, move.Player, track, token.StepsOnEveryTrack, events, out var after, mayBorrow: false);
                 events.Add(new TrackAdvanced(move.Player, track, before, after));
                 next = TrackRewards(next, move.Player, before, after, events);
             }
+            if (choose)
+            {
+                var held = next[move.Player].TopStepsHeld ?? ValueList<Track>.Empty;
+                foreach (var track in reaching.Where(track => !held.Contains(track)))
+                    held = held.Add(track);
+                next = next.WithPlayer(next[move.Player] with { Keys = keys, TopStepsHeld = held });
+            }
+        }
         next = ReleaseHeldTopSteps(next, move.Player, events); // a favour's step onto 10 held earlier in this action
         if (token.ShippingUpgrade)
             next = FreeShippingUpgrade(next, move.Player, key, events, warnings);

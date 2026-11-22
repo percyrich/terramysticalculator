@@ -25,6 +25,13 @@ public static partial class Rules
         return null;
     }
 
+    // Rewards after the action (a favour, a town, the stronghold's held power) wait for the power offers from it: those
+    // are part of the action (Andrew 2026-11-23).
+    private static MoveResult? CheckOffersAnswered(GameState state) =>
+        state.PowerOffers.Count > 0
+            ? MoveResult.Rejected(state, $"Waiting for the {Name(state.PowerOffers[0].Player)} to accept or decline power.")
+            : null;
+
     // For the one action per turn: it must be your turn, and you must not have acted yet.
     private static MoveResult? CheckAction(GameState state, Faction player)
     {
@@ -62,13 +69,14 @@ public static partial class Rules
     }
 
     // For free actions (conversions, burning): any time during your own turn, before or after your action, but not in
-    // the middle of it (e.g. between a transform and the dwelling built there, or a temple and its favour). A town still
-    // to be formed doesn't stop them (as on BGA: 931629591 #359, 4 power to coins before the key).
+    // the middle of it (e.g. between a transform and the dwelling built there) nor while power offers from it wait. The
+    // rewards after the action don't stop them, before, between or after them (MidAction's rewardsAllowed; Andrew
+    // 2026-11-22/23; as on BGA: 931629591 #359, 4 power to coins between the favour and the town).
     private static MoveResult? CheckFreeAction(GameState state, Faction player)
     {
         if (CheckTurn(state, player) is { } refusal)
             return refusal;
-        if (MidAction(state, player, endingTurn: false, townAllowed: true) is { } unfinished)
+        if (MidAction(state, player, endingTurn: false, rewardsAllowed: true) is { } unfinished)
             return unfinished;
         if (state.Players.FirstOrDefault(other => other.PriestChoicesOwed > 0) is PlayerState choosing)
             return MoveResult.Rejected(state, $"Waiting for the {Name(choosing.Faction)} to choose what to do with their priest.");
@@ -81,15 +89,17 @@ public static partial class Rules
     // Something of the player's action still to finish (a favour to take, spades to spend or a dwelling to build on the
     // hex just transformed, a bridge, a town, a priest choice, power offers to be answered, ...): a rejection naming it,
     // or null if the action is complete (or none has begun). endingTurn: worded for End turn.
-    // townAllowed: a town still to be formed doesn't count (free actions).
-    private static MoveResult? MidAction(GameState state, Faction player, bool endingTurn, bool townAllowed = false)
+    // rewardsAllowed: the rewards after the action don't count (free actions): a favour still to take, a town still to be
+    // formed, the Halflings' stronghold spades (RewardSpades) and the dwelling after them, the Riverwalkers' free bridges
+    // (BridgesOptional). Power offers from the action still do: they are part of it (Andrew 2026-11-23).
+    private static MoveResult? MidAction(GameState state, Faction player, bool endingTurn, bool rewardsAllowed = false)
     {
         var p = state[player];
-        if (p.FavoursOwed > 0)
+        if (!rewardsAllowed && p.FavoursOwed > 0)
             return MoveResult.Rejected(state, $"The {Name(player)} must take their favour {(endingTurn ? "before ending their turn" : "first")}.");
-        if (state.SpadesPending)
+        if (state.SpadesPending && !(rewardsAllowed && state.RewardSpades))
             return MoveResult.Rejected(state, $"The {Name(player)} must finish spending their free spades first (or press Done).");
-        if (p.BridgesOwed > 0)
+        if (p.BridgesOwed > 0 && !(rewardsAllowed && p.BridgesOptional))
             return MoveResult.Rejected(state, p.BridgesOptional
                 ? $"The {Name(player)} must place their bridges first (or skip them)."
                 : $"The {Name(player)} must place their bridge first.");
@@ -115,12 +125,14 @@ public static partial class Rules
             return MoveResult.Rejected(state, $"The {Name(player)} must place or remove a glowing rock first (or press Done).");
         if (p.FreeUpgradeOwed)
             return MoveResult.Rejected(state, $"The {Name(player)} must take their free shipping or spade step first.");
-        if (!townAllowed && FormableTowns(state, player).Count > 0)
+        if (!rewardsAllowed && FormableTowns(state, player).Count > 0)
             return MoveResult.Rejected(state, $"The {Name(player)} must form their town first (place a key token on it).");
         if (state.PowerOffers.Count > 0)
             return MoveResult.Rejected(state, $"Waiting for the {Name(state.PowerOffers[0].Player)} to accept or decline power.");
         if (p.CultStepsOwed > 0)
             return MoveResult.Rejected(state, $"The {Name(player)} must choose a track for their cult step first.");
+        if (p.TopStepChoiceOwed)
+            return MoveResult.Rejected(state, $"The {Name(player)} must choose which track their key takes to the top first.");
         return null;
     }
 

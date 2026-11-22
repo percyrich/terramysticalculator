@@ -184,9 +184,29 @@ public sealed partial class Converter
                             Free(f, new BuyPowerToken(f), n);
                     }
                     else if (n.Log.Contains("Stronghold"))
-                        return; // the Children of the Wyrm's stronghold: Core adds the tokens with the build (BGA a little later)
+                    {
+                        // The Children of the Wyrm's stronghold tokens, held as a reward: taken where BGA gives them
+                        // (717052298 #362, before the town).
+                        if (S[f].TokensHeld > 0)
+                        {
+                            ResolveOffers();
+                            Do(new TakeHeldPower(f), n);
+                        }
+                    }
                     else
                         Problem(n, $"BGA has the {Name(f)} take a power token, but Core offers them none");
+                });
+                break;
+            case "powerIncome" when n.Log.Contains("Alchemists Stronghold"):
+                // The Alchemists' 12 power, held as a reward after the action: taken where BGA gives it (241070597 #290,
+                // after the town and a conversion). Their 2 power a spade, logged alike, Core gives with the spade.
+                WithPlayer(n, f =>
+                {
+                    if (S[f].PowerHeld > 0 && n.Amount("power_income") == S[f].PowerHeld && S.ActivePlayer == f)
+                    {
+                        ResolveOffers();
+                        Do(new TakeHeldPower(f), n);
+                    }
                 });
                 break;
             case "priestFromTerrainCycle": // the Riverwalkers unlock a terrain with a priest gained
@@ -236,6 +256,18 @@ public sealed partial class Converter
             case "conversionsApplied": WithPlayer(n, f => Conversions(n, f)); break;
             case "powerViaStructures": Decision(n); break;
             case "updateCounters" when IsCoinInstead(n): Decision(n); break; // the Nomads' Trading Camp: 1 coin instead
+            // "declines building a Dwelling for now": with no dwelling of theirs following, the spaded hex is given up
+            // now (Done), so the conversions BGA logs next are made there, after the transform (803258738 #258–259:
+            // 3 power to a worker with the Alchemists' 2 spade power).
+            case "updateCounters" when n.Log.Contains("declines building a Dwelling"): WithPlayer(n, f => DeclineDwelling(n, f)); break;
+            case "updateCounters" when n.Log.Contains("declines advancing on a Cult track"): // the Cultists' step given up
+                WithPlayer(n, f =>
+                {
+                    ResolveOffers();
+                    if (S[f].CultStepsOwed > 0)
+                        Do(new DeclineCultStep(f), n);
+                });
+                break;
             case "workersForPriests": WithPlayer(n, f => { ResolveOffers(); Do(new ExchangeWorkersForPriests(f, n.Amount("priests_gain")), n); }); break;
             case "createLandBridges": ReadBridgeSpots(n.Args["board_bridge_spaces"] as JsonObject); break;
             case "justAMessage": Message(n); break;
@@ -313,6 +345,15 @@ public sealed partial class Converter
         }
         EnsureActive(f, true, n);
         Do(new BuildDwelling(f == Faction.Changelings ? ChangelingDwelling(n, hex) : Next(f, PieceKind.Dwelling), hex), n);
+    }
+
+    private void DeclineDwelling(Note n, Faction f)
+    {
+        if (S.Phase != Phase.Playing || S.ActivePlayer != f || !S.SpadesPending || S[f].SpadesOwed > 0)
+            return;
+        // "For now": a dwelling there later is a new action (713223885 #399: the Dwarves tunnel again; 198809215 #336:
+        // the Witches' Ride). In all 253 samples none follows in the same turn.
+        Do(new FinishSpades(f), n);
     }
 
     private void Transformed(Note n, Faction f)
@@ -417,7 +458,7 @@ public sealed partial class Converter
 
     private void Town(Note n, Faction f)
     {
-        ResolveOffersDuring(f, n);
+        ResolveOffers(); // a town waits for the action's power offers (BGA often forms it first)
         var townId = n.Int("town_id") ?? -1;
         if (!_keyTiles.TryGetValue(townId, out var key))
         {
@@ -432,7 +473,22 @@ public sealed partial class Converter
         // A Mermaids' river town taken at the start of their turn (BGA state 414, 894202965 #263): their turn first.
         if (S.Phase == Phase.Playing && S.ActivePlayer != f)
             EnsureActive(f, false, n);
-        if (!Do(new FormTown(f, key, KeyHex(f, Hex(n.Str("bts_id")))), n) || S[f].WitchesTownBonusHex is null)
+        var form = new FormTown(f, key, KeyHex(f, Hex(n.Str("bts_id"))));
+        // Older BGA tables counted the Mermaids' Coral Reef as an ordinary structure in a town, the key on land
+        // (117377020 #336, 117525907 #328). Core's ruling: a town through the Reef has its key on the Reef. If it may go
+        // there, it goes there, with a warning. (A key on another river hex of such a town, 129565288 and 134295961,
+        // can't be rescued: BGA did not yet keep keys off river hexes other than the Reef in a town holding it.)
+        if (f == Faction.Mermaids && !Rules.Apply(S, form).Accepted && S.LandscapeHex(f) is int reef && reef != form.Hex
+            && Rules.Apply(S, form with { Hex = reef }).Accepted)
+        {
+            Problem(n, $"BGA puts the Mermaids' key on {GameLog.HexName(S, form.Hex)}, in a town joined through their Coral Reef "
+                + $"(older BGA counted the Reef as an ordinary structure): the key goes on the Reef ({GameLog.HexName(S, reef)}) instead");
+            form = form with { Hex = reef };
+        }
+        if (!Do(form, n))
+            return;
+        TownTrackSteps(n, f);
+        if (S[f].WitchesTownBonusHex is null)
             return;
         // The Witches with Raven's Blunder: BGA logs the 5 VP ("Witches Ability") or a 3-step cult advance.
         var packet = _g.Notes.Skip(n.Index + 1).TakeWhile(m => m.Packet <= n.Packet + 1).Where(m => m.Str("player_id") == n.Str("player_id")).ToList();
@@ -444,6 +500,37 @@ public sealed partial class Converter
     }
 
     private Note? _atlanteansTown;
+
+    // A town's steps on every track. Newer BGA logs them after the town, one track per packet in the order the player
+    // chose (advanceCultTrack, then specialActionUsed with no favour or pass tile): Core made them with the town, so
+    // those notes are used up here. With fewer keys than tracks reaching 10 (TopStepChoiceOwed), the key goes where BGA
+    // shows a 9 → 10 (927967865 #357: Air, not Fire); with no such note, the first track that can take it.
+    private void TownTrackSteps(Note n, Faction f)
+    {
+        var id = n.Str("player_id");
+        var later = _g.Notes.Skip(n.Index + 1).TakeWhile(m => m.Packet <= n.Packet + 6).ToList();
+        var steps = later.Where(m => m.Type == "advanceCultTrack" && m.Str("player_id") == id && string.IsNullOrEmpty(m.Str("addendum"))
+            && !_usedNotes.Contains(m.Index)).Take(4).ToList();
+        var perTrack = steps.Count == 4 && steps.Select(m => m.Str("cult_id") ?? m.Str("cult_name")).Distinct().Count() == 4;
+        if (perTrack)
+            foreach (var step in steps)
+            {
+                _usedNotes.Add(step.Index);
+                if (later.FirstOrDefault(m => m.Packet == step.Packet && m.Type == "specialActionUsed" && m.Str("player_id") == id
+                        && m.Args["favor_id"] is null && m.Args["bonus_id"] is null) is Note used)
+                    _usedNotes.Add(used.Index);
+            }
+        for (var guard = 0; guard < 4 && S[f].TopStepChoiceOwed && !_stopped; guard++)
+        {
+            var held = S[f].TopStepsHeld ?? ValueList<Track>.Empty;
+            var top = (perTrack ? steps : later.Where(m => m.Type == "advanceCultTrack" && m.Str("player_id") == id))
+                .Where(m => m.Int("initial_pos") == Config.TrackMax - 1 && m.Int("final_pos") == Config.TrackMax)
+                .Select(m => (Track?)Tables.ToTrack(m.Str("cult_id") ?? m.Str("cult_name") ?? ""))
+                .FirstOrDefault(track => held.Contains(track!.Value) && S[f].TrackSteps[(int)track.Value] == Config.TrackMax - 1)
+                ?? held.First(track => S[f].TrackSteps[(int)track] == Config.TrackMax - 1);
+            Do(new TakeTopStep(f, top), n);
+        }
+    }
 
     private void Shipping(Note n, Faction f)
     {
@@ -845,6 +932,13 @@ public sealed partial class Converter
         {
             var at = from ?? S;
             var tried = Rules.Apply(at, move);
+            // Refused here (mid-action: 862476363 #347, the Enlightened with their stronghold getting 2 coins a power):
+            // measured before the action instead, with power to spare.
+            if (!tried.Accepted && from is null && _actionStart is (_, GameState before) && before.IsInGame(f))
+            {
+                at = before.WithPlayer(before[f] with { Power = new Power(0, 0, Config.PowerTokens) });
+                tried = Rules.Apply(at, move);
+            }
             var gained = tried.Accepted ? what(tried.State[f]) - what(at[f]) : 0;
             return gained > 0 ? gained : otherwise;
         }

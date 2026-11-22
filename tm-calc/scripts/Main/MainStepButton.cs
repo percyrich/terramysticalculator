@@ -11,8 +11,10 @@ namespace TMCalc;
 //   Confirm (the tick): the step can be finished as it is; pressing it does that: the game (with its options), the
 //     factions, the turn order, the round tiles, starting with the pass tiles chosen (StartGame),
 //     no more free spades (FinishSpades: those left are lost, the build offer declined), no more of the Riverwalkers'
-//     free bridges (SkipBridges), no more of the Darklings' worker exchanges (FinishPriestExchange). Each only when
-//     the rules would accept it.
+//     free bridges (SkipBridges), no more of the Darklings' worker exchanges (FinishPriestExchange), the Cultists' cult
+//     step given up (DeclineCultStep), the Shapeshifters' power token declined (AnswerTokenOffer, no), the stronghold's
+//     held power or tokens taken (TakeHeldPower: the Alchemists, the Children of the Wyrm). Each only when the rules
+//     would accept it.
 //   Blank: otherwise (an ordinary turn: the panels' player buttons end turns), and once the game is over.
 public partial class Main
 {
@@ -69,6 +71,12 @@ public partial class Main
             return new FinishSpades(active);
         if (player.PriestExchangesLeft > 0)
             return new FinishPriestExchange(active);
+        if (active == Faction.Cultists && player.CultStepsOwed > 0 && state.PowerOffers.Count == 0)
+            return new DeclineCultStep(active); // the Cultists give up their step (BGA lets them)
+        if (player.TokenOfferOwed)
+            return new AnswerTokenOffer(active, Accept: false); // Shapeshifters keep their VP (a click elsewhere does the same)
+        if ((player.PowerHeld > 0 || player.TokensHeld > 0) && state.PowerOffers.Count == 0)
+            return new TakeHeldPower(active); // the stronghold's power or tokens, now (else at End turn)
         return null;
     }
 

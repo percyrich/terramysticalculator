@@ -49,6 +49,8 @@ public sealed record GameState(
     ValueList<int>? Lava = null,              // Kingdom of Ember: [hex] = volcano tiles beyond the hex's own (null: none)
     ValueList<int>? WyrmTokens = null,        // Children of the Wyrm: river hexes holding one of their power tokens
     bool ShippingBoost = false,               // Selkies' stronghold action under way: their shipping +1 for its spades
+    bool RewardSpades = false,                // the spades pending are a reward after the action (the Halflings'
+                                              // stronghold): free actions allowed meanwhile (Rules.MidAction)
     Income? TreasuryChosen = null,            // Treasurers: what of TreasuryOffer is going into the Safe so far
                                               // (ChooseForSafe; null: nothing); settled with StoreInTreasury
     bool SafeOpeningHeld = false)             // Treasurers: the round's end waits for their round-end cult reward's Safe

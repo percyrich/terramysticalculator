@@ -185,11 +185,12 @@ public static partial class Rules
         faction switch
         {
             Faction.Auren => EarnFavours(state, faction, Config.AurenStrongholdFavours, events, warnings),
-            Faction.Halflings => GainSpades(state with { SpadedHexes = ValueList<int>.Empty }, faction,
+            Faction.Halflings => GainSpades(state with { SpadedHexes = ValueList<int>.Empty, RewardSpades = true }, faction,
                 Config.HalflingsStrongholdSpades, events),
             Faction.Cultists => GainVictoryPoints(state, faction, Config.CultistsStrongholdVictoryPoints, events,
                 new PointsArea.OnHex(hex), new PointsArea.OnHex(hex)),
-            // Gained at the end of the action, when the turn ends (as on BGA): ReleaseHeldPower.
+            // A reward after the action: held (PowerHeld) until the Alchemists take it (TakeHeldPower), at the latest at
+            // End turn (Andrew 2026-11-23).
             Faction.Alchemists => state.WithPlayer(state[faction] with { PowerHeld = state[faction].PowerHeld + Config.AlchemistsStrongholdPower }),
             Faction.Darklings => state.WithPlayer(state[faction] with { PriestExchangesLeft = Config.DarklingsPriestExchange }),
             Faction.Mermaids => FreeShippingUpgrade(state, faction, new PointsArea.OnHex(hex), events, warnings),

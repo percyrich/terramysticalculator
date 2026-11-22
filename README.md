@@ -162,7 +162,7 @@ Every faction's board is drawn in code from its data: costs, incomes, landscapes
 ### Rulings
 
 Where the printed rules are silent or ambiguous, Board Game Arena's behaviour has generally been followed, and checked
-against 188 recorded games. The exceptions are deliberate rulings, recorded in the code next to the rule they affect.
+against 253 recorded games. The exceptions are deliberate rulings, recorded in the code next to the rule they affect.
 
 ---
 
@@ -368,18 +368,76 @@ The converter does not trust BGA's numbers; it re-plays the game.
    spades, VP and cult steps. Any difference is reported when it appears.
 5. **A move the rules refuse** stops the conversion there; everything up to that point is kept.
 
+### Conversions, power offers and rewards
+
+Apart from the rulings above, Core differs from BGA's implementation in one regard: when a player may convert power
+into other resources.
+
+**No conversions during an action.** Conversions cannot be made *during* an action. Factions that gain power *during*
+a Terraform and Build action (the Alchemists with their stronghold, the Prospectors with their golden spades) cannot
+convert it before the whole action, both parts, has ended: they cannot spend their (golden) spade, convert, and then
+build. BGA's log sometimes shows a conversion in the middle of an action, but in every recorded game it could have been
+made before the action began.
+
+**Power offers are part of the action.** Offering neighbours power for building or upgrading next to them belongs to
+the action, so the builder cannot convert while offers are pending, and the action's rewards wait for the offers too.
+
+**Rewards come after the action.** Favours, forming a town, and one-time stronghold bonuses (the Alchemists' 12 power,
+the Children of the Wyrm's tokens, the Halflings' 3 spades and the dwelling after them, the Riverwalkers' 2 bridges)
+follow the action that earned them. They may be taken in any order, with conversions before, between and after them.
+Whatever needs no decision is given at once: VP, coins, workers and priests, and a town's power and VP with its key
+token. Power gains give the same bowls in any order, so only a conversion between two of them can tell orders apart.
+For that reason a step onto 10 may use the key of a town still to be formed at once, power and all, and the Alchemists
+and the Children of the Wyrm take their stronghold's power when they choose (at the latest when the turn ends).
+
+For example:
+
+1. (Before the action: conversions allowed.)
+2. Build a temple: a favour is owed, to be taken after the action.
+3. (No conversions here.)
+4. Neighbours are offered power for the temple.
+5. (The action is over: conversions allowed from here on.)
+6. Take the Fire 2 favour, whose "a town needs only 6 power" makes a town.
+7. The favour's 2 steps reach Fire 10 with that town's key, used at once, and give its 3 power.
+8. Convert.
+9. Form the town: the key token's power and VP.
+
+When more than one town is formed in a turn, the rewards for one are finished before those for the next begin.
+
+**BGA is both more and less permissive** (to streamline online play): it forces a choice of reward order, yet lets
+the active player convert, and even take rewards, before the other players have answered their power offers.
+
+**Converting BGA games.** The converter moves a conversion BGA logs where Core doesn't allow it to the closest legal
+position: before the action, or once the power offers are answered.
+
 ### Results
 
-Against a test set of **188 recorded BGA games** across every faction, map and expansion:
+Against a test set of **253 recorded BGA games** across every faction, map and expansion:
 
-- **179** convert to the end;
-- **176** of those finish with every final score equal to BGA's.
+- **247** convert to the end;
+- **244** of those finish with every final score equal to BGA's.
 
 The games that stop or differ are understood. They involve older versions of three fan factions (BGA has since
-changed them), older tables scored under a different reading of the Mermaids' Coral Reef, one BGA scoring quirk, and
-one game whose stop is accepted (the author believes BGA's implementation is in error).
+changed them), older tables scored under a different reading of the Mermaids' Coral Reef (below), and one BGA scoring
+quirk (below).
 
-All 188 games are in [`BgaConvert/samples`](BgaConvert/samples).
+**A BGA scoring quirk (250486323).** The Fakirs finish 2 VP ahead of BGA. The difference starts at BGA's move 152:
+the Fakirs take the 2-spade power action and turn H7 (BGA's H10) from Mountain to Desert, then place their Flight
+School there (move 153). The round tile scores 2 VP a spade, so Core gives 4 VP; BGA gives 2. The suspected reason:
+BGA's record of the Flight School placement shows a terraforming cost of 1, so BGA appears to have counted one of the
+two spades as part of placing the landscape and scored only the other. Every other 2-spade transform in the recorded
+games scores both spades, including ones followed by a landscape, so Core does not follow this.
+
+**The Coral Reef in older tables.** Older BGA tables treated the Mermaids' Coral Reef as an ordinary structure in a
+town. In Core, a town joined through the Reef is a river town whose key goes on the Reef.
+
+- Where BGA put that key on a land hex (117377020, 117525907), the converter moves it onto the Reef if it may go
+  there, with a warning in the report.
+- Where BGA put it on another river hex (129565288, 134295961), the game cannot be processed and the import stops
+  there. BGA had not yet implemented the restriction that a key cannot go on a river hex without the Coral Reef when
+  the Reef is part of that town.
+
+All 253 games are in [`BgaConvert/samples`](BgaConvert/samples).
 
 ---
 
@@ -507,7 +565,7 @@ landscapes. Only the faction portraits are image files, taken from BGA, presumab
 │   │   ├── Parts/            Shared building blocks: icon-and-number bundles, highlights, the light animation
 │   │   └── Art/              Everything drawn in code
 │   └── sprites/              The faction portraits
-├── BgaConvert/               The BGA converter library, and 188 sample games in samples/
+├── BgaConvert/               The BGA converter library, and 253 sample games in samples/
 ├── BgaImport/                The command-line converter and the bookmarklet (see BgaImport/README.md)
 ├── run-tests.bat             Runs the tests and builds the app
 ├── run-bga-import.bat        Converts one BGA game

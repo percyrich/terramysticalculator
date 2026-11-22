@@ -84,7 +84,7 @@ public class FanFactionFireAndIceTests
     {
         var s = Rich(WithTradingPost(Play(Start(Wy, null, new[] { 17, 101 })), Wy, 17), Wy);
         s = s.WithPlayer(s[Wy] with { Power = new Power(2, 3, 1) });
-        var built = PlayFrom(s, UpgradeTo(Wy, PieceKind.Stronghold, 0, 17));
+        var built = PlayFrom(s, UpgradeTo(Wy, PieceKind.Stronghold, 0, 17), new TakeHeldPower(Wy)); // the tokens: a reward taken
         Assert.Equal(Config.PowerTokens, built[Wy].Power.Total);
         Assert.Equal(8, built[Wy].Power.Bowl1);
 
@@ -103,18 +103,21 @@ public class FanFactionFireAndIceTests
     }
 
     [Fact]
-    public void Wyrm_stronghold_tokens_come_back_before_a_town_still_to_form_when_no_offer_waits()
+    public void Wyrm_stronghold_tokens_are_a_reward_that_may_come_before_a_town_still_to_form()
     {
-        // 3 (trading post), 4, 16 and 17 (stronghold) touch: a town once the stronghold stands, still to form. No one
-        // to offer power to: the tokens come at once, before the town (as BGA, 717052298).
+        // 3 (trading post), 4, 16 and 17 (stronghold) touch: a town once the stronghold stands, still to form. The
+        // tokens are a reward after the action, taken when the Wyrm choose: here before the town (as BGA, 717052298).
         var s = Rich(WithTradingPost(Play(Start(Wy, null, new[] { 17, 101 })), Wy, 17), Wy);
         s = Put(s, Wy, (3, PieceKind.TradingPost), (4, PieceKind.Dwelling), (16, PieceKind.Dwelling));
         s = s.WithPlayer(s[Wy] with { Power = new Power(2, 3, 1) });
         var built = PlayFrom(s, UpgradeTo(Wy, PieceKind.Stronghold, 0, 17));
         Assert.NotEmpty(Rules.FormableTowns(built, Wy));
-        Assert.Equal(Config.PowerTokens, built[Wy].Power.Total);
-        Assert.Equal(8, built[Wy].Power.Bowl1); // 2 + the 6 back
-        Assert.Equal(0, built[Wy].TokensHeld);
+        Assert.Equal(6, built[Wy].TokensHeld);
+        var taken = PlayFrom(built, new TakeHeldPower(Wy));
+        Assert.Equal(Config.PowerTokens, taken[Wy].Power.Total);
+        Assert.Equal(8, taken[Wy].Power.Bowl1); // 2 + the 6 back
+        Assert.Equal(0, taken[Wy].TokensHeld);
+        Assert.NotEmpty(Rules.FormableTowns(taken, Wy));
     }
 
     // ---------- Atlanteans ----------

@@ -77,11 +77,14 @@ public sealed record PlayerState(
     int AtlanteansRewards = 0,         // Atlanteans: how many of their town's power thresholds have paid out (0-3)
     ValueList<Track>? TopStepsHeld = null, // tracks where a step onto 10 waits for a key during this action (a town formed
                                            // in it brings one: Rules.ReleaseHeldTopSteps); dropped when the action ends
-    int TokensHeld = 0,                    // new power tokens the action gives at its end, for bowl 1 (the Children of the
-                                           // Wyrm's stronghold, as on BGA); released with PowerHeld
-    int PowerHeld = 0,                     // power the action gives at its end (the Alchemists' stronghold, as on
-                                           // BGA): gained once its power offers are answered
-                                           // (Rules.ReleaseHeldPowerWhenDone), at the latest at End turn
+    bool TopStepChoiceOwed = false,        // more of those than keys: the player chooses where each key goes (TakeTopStep)
+    int KeysBorrowed = 0,                  // keys spent on a step onto 10 before the town bringing them is formed (in the
+                                           // same action: Rules.ClimbTrack); FormTown pays them back from its token
+    int TokensHeld = 0,                    // new power tokens a reward after the action, for bowl 1 (the Children of the
+                                           // Wyrm's stronghold); taken with PowerHeld
+    int PowerHeld = 0,                     // power a reward after the action (the Alchemists' stronghold): taken when
+                                           // the player chooses once its power offers are answered (TakeHeldPower), at
+                                           // the latest at End turn
     ValueList<int>? PassScoringHeld = null, // Snow Shamans: the pass tiles they held when passing, whose pass VP (with
                                            // the favours' and the stronghold's) wait for the free step (as on
                                            // BGA: the step first, then the pass scores)

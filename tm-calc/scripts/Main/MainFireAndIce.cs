@@ -37,7 +37,8 @@ public partial class Main
 
     // While a priest choice or a token offer waits: the history buttons work as usual; a lit terrain on the wheel is
     // taken by the wheel itself (OnPanelTerrainChosen); the token chip accepts; any other press answers no (any other
-    // button then still does its own job). True if the press was taken.
+    // button then still does its own job; the step button's tick declines the token too: MainStepButton.StepMove).
+    // True if the press was taken.
     private bool OnPressOwedChoice(Vector2 mouse)
     {
         GameState state = _history.Current;

@@ -149,7 +149,7 @@ public static partial class Rules
         if (move.Track is Track track)
         {
             var before = next[move.Player].TrackSteps[(int)track];
-            next = ClimbTrack(next, move.Player, track, Landscapes.WitchesTownSteps, events, out var after);
+            next = ClimbTrack(next, move.Player, track, Landscapes.WitchesTownSteps, events, out var after, mayBorrow: false); // the town's own reward
             events.Insert(0, new TrackAdvanced(move.Player, track, before, after));
             next = TrackRewards(next, move.Player, before, after, events);
         }

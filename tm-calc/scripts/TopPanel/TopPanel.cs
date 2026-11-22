@@ -62,7 +62,16 @@ public partial class TopPanel : Control
     public string Message { get => _message.Text; set { _message.Text = value ?? ""; RefreshExpanded(); } }
     // The message in italics (a passing note or a prompt, not the step's own message).
     public bool MessageItalic { get => _messageItalic; set { _messageItalic = value; Restyle(); } }
-    public string LogEntry { get => _logText; set { _logText = value ?? ""; RefreshLogLine(); RefreshExpanded(); } }
+    public string LogEntry { get => _logText; set { _logText = value ?? ""; _logSegments = null; RefreshLogLine(); RefreshExpanded(); } }
+
+    // The log line in colour (Main.LogSegments): each part in its faction's colour.
+    public void ShowLogEntry(IReadOnlyList<LogSegment> segments)
+    {
+        _logSegments = segments;
+        _logText = segments is null ? "" : LogRichText.Plain(segments);
+        RefreshLogLine();
+        RefreshExpanded();
+    }
     public bool CanUndo { get => !Key(TopPanelArt.KeyKind.Undo).Disabled; set => Key(TopPanelArt.KeyKind.Undo).Disabled = !value; }
     public bool CanRedo { get => !Key(TopPanelArt.KeyKind.Redo).Disabled; set => Key(TopPanelArt.KeyKind.Redo).Disabled = !value; }
     public bool Bookmarked
@@ -93,6 +102,10 @@ public partial class TopPanel : Control
     private readonly Label _expanded = new() { Name = "Expanded", Visible = false, MouseFilter = MouseFilterEnum.Ignore, ZIndex = 10 };
     private Label _hovered;
     private string _logText = ""; // LogEntry whole; the line shows its first line (LogBreaks.FirstLine)
+    private IReadOnlyList<LogSegment> _logSegments; // its colours (null: all in LogColour)
+    // The log line and its hovered whole in colour, over the plain Label (kept, its text clear, for the hover and the
+    // measuring).
+    private readonly RichTextLabel _logRich = LogRichText.Make("LogEntryColoured"), _expandedRich = LogRichText.Make("ExpandedColoured");
     // IgnoreSize: otherwise a TextureRect can't be smaller than its texture, so after a narrower relayout it kept the old
     // width and stretched the new picture (the sections drifted away from the keys).
     private readonly TextureRect _backing = new()
@@ -150,6 +163,15 @@ public partial class TopPanel : Control
         Rules.ValueChosen += value => EmitSignal(SignalName.ModeChosen, value);
         AddChild(Log);
         AddChild(_expanded);
+        _logRich.MouseFilter = MouseFilterEnum.Ignore;
+        _logRich.FitContent = false;
+        _logRich.AutowrapMode = TextServer.AutowrapMode.Off;
+        _logRich.VerticalAlignment = VerticalAlignment.Center;
+        AddChild(_logRich);
+        _expandedRich.MouseFilter = MouseFilterEnum.Ignore;
+        _expandedRich.Visible = false;
+        _expandedRich.ZIndex = 10;
+        AddChild(_expandedRich);
         Restyle();
         Relayout();
     }
@@ -185,6 +207,8 @@ public partial class TopPanel : Control
         _message.Size = l.MessageLine.Size;
         _logLine.Position = l.LogLine.Position;
         _logLine.Size = l.LogLine.Size;
+        _logRich.Position = l.LogLine.Position;
+        _logRich.Size = l.LogLine.Size;
         RefreshLogLine();
         Key(TopPanelArt.KeyKind.Log).Position = l.LogKey.Position;
         var history = new[] { TopPanelArt.KeyKind.Undo, TopPanelArt.KeyKind.Redo, TopPanelArt.KeyKind.Bookmark, TopPanelArt.KeyKind.Map };
@@ -208,7 +232,9 @@ public partial class TopPanel : Control
     private void Restyle()
     {
         _message.LabelSettings = Text(MessageFontSize, MessageEmbolden, _messageColour, _messageItalic);
-        _logLine.LabelSettings = Text(LogFontSize, LogEmbolden, _logColour, false);
+        _logLine.LabelSettings = Text(LogFontSize, LogEmbolden, Colors.Transparent, false); // drawn by _logRich
+        LogRichText.Style(_logRich, _logLine.LabelSettings.Font, LogFontSize, LogOutline);
+        LogRichText.Style(_expandedRich, _logLine.LabelSettings.Font, LogFontSize, LogOutline);
         RefreshLogLine();
         RefreshExpanded();
     }
@@ -230,7 +256,12 @@ public partial class TopPanel : Control
     {
         LabelSettings settings = _logLine.LabelSettings;
         _logLine.Text = settings is null ? _logText : LogBreaks.FirstLine(_logText, settings.Font, settings.FontSize, _logLine.Size.X);
+        _logRich.Text = LogRichText.BbCode(LogSegments, new[] { _logLine.Text }, MoreLook);
     }
+
+    private const int LogOutline = 3;
+    private IReadOnlyList<LogSegment> LogSegments => _logSegments ?? LogRichText.Single(_logText, _logColour, new Color(0, 0, 0, 0.85f));
+    private LogSegment MoreLook => new(LogBreaks.More, IconArt.PowerPurple, Colors.White); // the " …" after a cut-short line
 
     // The hovered line whole, if it is cut short (nothing otherwise): the message on one longer line; the log record
     // in the log line's width, broken onto more lines (LogBreaks.Lines), the first where the log line is.
@@ -239,6 +270,7 @@ public partial class TopPanel : Control
         Label line = _hovered;
         LabelSettings settings = line?.LabelSettings;
         string whole = line == _logLine ? _logText : line?.Text;
+        _expandedRich.Visible = false;
         if (settings is null || string.IsNullOrEmpty(whole))
         {
             _expanded.Visible = false;
@@ -263,6 +295,17 @@ public partial class TopPanel : Control
         };
         box.SetBorderWidthAll(2);
         box.SetCornerRadiusAll(8);
+        if (line == _logLine)
+        {
+            // The log record in colour.
+            _expanded.Visible = false;
+            _expandedRich.AddThemeStyleboxOverride("normal", box);
+            _expandedRich.Text = LogRichText.BbCode(LogSegments, lines, MoreLook);
+            _expandedRich.Position = line.Position - new Vector2(padX, padY);
+            _expandedRich.Size = new Vector2(width + 2 * padX + 4 + 2 * LogOutline, 0); // as tall as its lines
+            _expandedRich.Visible = true;
+            return;
+        }
         _expanded.AddThemeStyleboxOverride("normal", box);
         _expanded.LabelSettings = settings;
         _expanded.Text = string.Join("\n", lines);

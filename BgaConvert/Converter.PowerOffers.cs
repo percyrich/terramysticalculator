@@ -11,16 +11,13 @@ public sealed partial class Converter
 
     // Answers every power offer Core is waiting on, in Core's order, with what BGA recorded for that player and hex (a
     // little further on in the log, as BGA asks everyone at once).
-    // upTo: only the offers BGA has answered by that note (the rest wait for their answers in the log).
-    private void ResolveOffers(Note? upTo = null)
+    private void ResolveOffers()
     {
         for (var guard = 0; guard < 40 && !_stopped && S.PowerOffers.Count > 0; guard++)
         {
             var offer = S.PowerOffers[0];
             var at = GameLog.HexName(S, offer.Hex);
             var found = FindDecision(offer.Player, at, offer.Hex);
-            if (upTo is not null && found is int later && later > upTo.Index)
-                return;
             Note? decision = found is int k ? _g.Notes[k] : null;
             if (decision is not null)
                 _consumed.Add(decision.Index);
@@ -32,17 +29,6 @@ public sealed partial class Converter
                 : decision is not null && IsCoinInstead(decision) ? new TakeCoinInstead(offer.Player)
                 : new DeclinePower(offer.Player), decision);
         }
-    }
-
-    // The builder's own moves while power is held for the end of their action (the Alchemists' stronghold): the offers
-    // are answered where BGA answers them, as the held power comes only once they all are (and BGA's conversions made
-    // meanwhile come before it).
-    private void ResolveOffersDuring(Faction f, Note n)
-    {
-        if (S.ActivePlayer == f && (S[f].PowerHeld > 0 || S[f].TokensHeld > 0))
-            ResolveOffers(n);
-        else
-            ResolveOffers();
     }
 
     // BGA's names for hexes in notes' "extra" ("E4", river hexes "R~D3"), from the notes giving both it and bts_id.
@@ -63,11 +49,17 @@ public sealed partial class Converter
 
     private int? FindDecision(Faction f, string hexName, int hex)
     {
+        // Up to 6 packets on, not counting packets of nothing but messages (chat, timeouts: 855425167 #34–36, five of
+        // them between the build and the Conspirators' answer).
         var start = Math.Min(_pos, _g.Notes.Count);
-        var lastPacket = (start < _g.Notes.Count ? _g.Notes[start].Packet : int.MaxValue - 10) + 6;
-        for (var i = start; i < _g.Notes.Count && _g.Notes[i].Packet <= lastPacket; i++)
+        var counted = new HashSet<int>();
+        for (var i = start; i < _g.Notes.Count; i++)
         {
             var n = _g.Notes[i];
+            if (n.Type != "justAMessage" || n.Str("player_id") is not null)
+                counted.Add(n.Packet);
+            if (counted.Count > 7)
+                break;
             if (_consumed.Contains(i) || !IsDecision(n) || PlayerOf(n) != f)
                 continue;
             if (n.Shown == hexName || string.IsNullOrEmpty(n.Shown) // older logs name no hex: the player's next answer

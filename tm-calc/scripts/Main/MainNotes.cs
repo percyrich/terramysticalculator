@@ -91,7 +91,7 @@ public partial class Main
                 : TopPanelLog.RowState.Later;
             bool start = note.Entry.Move is null; // Session start
             return new TopPanelLog.Row(line.Text, start ? null : note.Number, line.Depth, line.Opens, state,
-                note.Entry.Bookmark is not null, start);
+                note.Entry.Bookmark is not null, start, LogSegments(line.Parts));
         }).ToList();
         _notesWindow.Log.Frame = _topPanel.FrameColour;
         _notesWindow.Log.ShowRows(rows);

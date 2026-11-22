@@ -30,8 +30,8 @@ public static partial class Rules
                 for (var i = 0; i < Config.DynionGeifrStrongholdPriests; i++)
                     state = GainPriest(state, faction, events, warnings);
                 return state;
-            case Faction.ChildrenOfTheWyrm: // the tokens burned so far come back, into bowl 1, at the end of the action
-            {                               // (as on BGA: Rules.ReleaseHeldPower)
+            case Faction.ChildrenOfTheWyrm: // the tokens burned so far come back, into bowl 1: a reward after the action,
+            {                               // held until they take it (TakeHeldPower), at the latest at End turn
                 var back = Math.Max(0, Config.PowerTokens - state[faction].Power.Total);
                 return back == 0 ? state : state.WithPlayer(state[faction] with { TokensHeld = state[faction].TokensHeld + back });
             }
