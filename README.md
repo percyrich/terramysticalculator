@@ -1,8 +1,8 @@
 # Terra Mysticalculator
 
 A desktop board for **Terra Mystica**: set up any game, play it out move by move under the full rules, explore
-alternative lines, and replay real games imported from Board Game Arena. Built for commentating and analysing games
-(chess-broadcast style), and as a calculator for working out what a turn could achieve.
+alternative lines, and replay real games imported from Board Game Arena. Built for analysing games, planning, 
+and and theorycrafting.
 
 Built with **Godot 4.7 (.NET / C#)** on top of a standalone, fully tested rules engine.
 
@@ -49,8 +49,8 @@ A slider on the top panel switches between:
 
 | Mode | What it allows |
 |---|---|
-| **Strict** | The rules exactly as printed. Any move that would leave a player in debt (coins, workers, priests) or below 0 VP is refused. |
-| **Lenient** | The rules, but debt and negative VP are allowed with a warning. Useful for "what if they had one more worker?" |
+| **Strict** | The rules exactly as printed. Any move that would leave a player in debt (coins, workers, priests) is refused. |
+| **Lenient** | The rules, but debt is allowed with a warning. Useful for "what if they had one more worker?" |
 | **Free** | Planning during a game: any faction can take any number of ordinary actions, in any order, with normal costs and rewards. Leaving Free hands the turn back to whoever had it. |
 
 ### Calculator
@@ -87,8 +87,9 @@ key", "Two factions on a step 10", …). A turn-order step then sets who acts ne
 - **The bookmark map** (**M**): a drawing of every line and bookmark. Click any bookmark to jump there.
 - **The log** (**L**): every move in words ("Giants build a dwelling at E5 · +2 VP (round bonus)"). Each record
   has a jump arrow to go straight to it, and a ribbon to bookmark it.
-- **The game line:** marks the line that was actually played, for commentary. Wandering off it to show an alternative
-  is flagged in the message line ("Off the game line (3 moves)"), and **Back to game line** returns.
+- **The game line:** marks a line as "official", and on imports the one that was actually played. Wandering off it 
+  to shows as an alternative,  flagged in the message line ("Off the game line (3 moves)"), and **Back to game line** 
+  returns.
 
 ### Saving and loading
 
@@ -144,18 +145,18 @@ Special Landscapes and fan factions cannot be combined in one game.
 | Fire & Ice (6) | Ice Maidens, Yetis, Dragonlords, Acolytes, Riverwalkers, Shapeshifters |
 | Fan factions (20) | Architects, Treasurers, Djinni, Archivists, Time Travellers, Prospectors, Goblins, Children of the Wyrm, Wisps, Atlanteans, Chash Dallah, Enlightened, Conspirators, Dynion Geifr, Selkies, Snow Shamans, Firewalkers, Kingdom of Ember, Geologists, Changelings |
 
-Every faction's board is drawn in code from its data: costs, incomes, stronghold bonus and special abilities.
+Every faction's board is drawn in code from its data: costs, incomes, landscapes, stronghold bonus and special abilities.
 
 ### Maps
 
 | Map | Notes |
 |---|---|
 | Base Map | The original printing |
-| Revised Base Map | The corrected later printing |
+| Revised Base Map | Fire & Ice Side 2 |
 | Fire & Ice | Side 1 |
 | Fjords | |
 | Lakes | |
-| Archipelago | |
+| Archipelago (BGA official version) | |
 | Custom | Any map made in the editor |
 
 ### Rulings
@@ -189,6 +190,8 @@ The rules engine and tests are plain .NET and run anywhere .NET does. The app it
 3. Godot builds the C# projects on first open. If it doesn't, use **Build** in the top-right corner of the editor.
 4. Press **F5** (or the play button) to run.
 
+You can download the latest release from the GitHub page.
+
 ### Run the tests
 
 From the repository root:
@@ -215,12 +218,12 @@ The **step button** at the left end of the top panel moves setup along. It shows
 and a tick once the step can be confirmed.
 
 1. **Game:** Terra Mystica, and the options under it:
-   - variable turn order;
-   - mini-expansions;
+   - Variable turn order;
+   - Mini-expansions (4 town keys, 1 pass tile, 1 round bonus tile);
    - Landscapes;
-   - Fire & Ice and its final scoring tile;
-   - fan factions;
-   - setting up a game in progress;
+   - Fire & Ice and (optionally) a final scoring tile;
+   - Fan factions;
+   - Setting up a game in progress;
    - Calculator (and its Strict variant).
 
    The rules slider sets the mode to start in.
@@ -232,6 +235,8 @@ and a tick once the step can be confirmed.
 5. **Round tiles:** click six, in round order.
 6. **Pass tiles:** click the tiles in the game (the number of players plus three).
 7. **Start:** place the starting dwellings, then each player picks a pass tile, in reverse turn order.
+
+This is not the way a game is usually set up - this app is for analysis, not for actually playing the game.
 
 ### Playing
 
@@ -372,7 +377,9 @@ Against a test set of **188 recorded BGA games** across every faction, map and e
 
 The games that stop or differ are understood. They involve older versions of three fan factions (BGA has since
 changed them), older tables scored under a different reading of the Mermaids' Coral Reef, one BGA scoring quirk, and
-one game whose stop is accepted. All 188 games are in [`BgaConvert/samples`](BgaConvert/samples).
+one game whose stop is accepted (the author believes BGA's implementation is in error).
+
+All 188 games are in [`BgaConvert/samples`](BgaConvert/samples).
 
 ---
 
@@ -473,8 +480,7 @@ Queries work the same way: "where can this piece go?" is answered by trying each
 ### Art
 
 The board is drawn entirely in code: hexes, buildings, cult tracks, faction boards, tiles, icons and the special
-landscapes. Only the faction portraits are image files, made for this project. Every drawing is generated at the size
-it is shown, so it stays sharp at any zoom.
+landscapes. Only the faction portraits are image files, taken from BGA, presumably scanned from the physical game.
 
 ---
 
@@ -591,13 +597,12 @@ is in active development, built mainly for its author's own commentary, and has 
 
 Known gaps:
 
-- **No release builds yet.** Run it from the Godot editor.
 - **Setting up a game in progress:** the Riverwalkers' locked terrains and the Shapeshifters' home terrain can't yet
   be set by clicking.
 - **Saves** replay their moves on loading, so a rule changed since a save was made can stop the load at that move.
   Snapshots at bookmarks are not implemented yet.
 - **BGA import:** older versions of three fan factions (Goblins, Enlightened, Chash Dallah) are detected and reported
-  but not played under their old rules. BGA's in-game undo has not been seen in any log so far.
+  but not played under their old rules.
 - **The bookmarklet** has been written for Chrome and used there only.
 
 ---

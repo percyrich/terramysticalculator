@@ -118,7 +118,7 @@ The rest are known and understood:
 | One BGA scoring quirk (Fakirs, table 250486323) | Final score differs by 2 VP |
 | Alchemists converting while neighbours are still answering their stronghold's power offers (table 241070597) | Stop, accepted: Core waits for the offers first |
 
-Not yet seen in any BGA log, so how BGA records them is unknown: the Archipelago map, the Edges final scoring tile,
+Not yet seen in any BGA log, so how BGA records them is unknown: the Edges final scoring tile,
 the Yetis' Frozen Peak, and the Witches' Raven's Blunder taken as three cult steps. A notification type the converter
 doesn't know is reported as "not converted yet" the first time it appears.
 
