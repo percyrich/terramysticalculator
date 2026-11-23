@@ -92,9 +92,9 @@ public partial class TopPanel : Control
     public TopPanelKey Key(TopPanelArt.KeyKind kind) => _keys[kind];
 
     private float _shownWidth = 880, _panelScale = 0.6f;
-    private const float LogHeight = 300; // panel pixels
+    private const float LogHeight = 600; // panel pixels (doubled 2026-11-24: more of the log at once)
     private Color _frame = IconArt.PowerPurple, _messageColour = TopPanelArt.MessageColour, _logColour = TopPanelArt.LogColour;
-    private const int MessageFontSize = 25, LogFontSize = 22;
+    private const int MessageFontSize = 25, LogFontSize = 24; // (the log line: 22 → 24 with the coloured text)
     private const float MessageEmbolden = 0f, LogEmbolden = -0.3f; // the default font is semibold; the log lighter (regular weight)
     private bool _messageItalic;
     // A line cut short (…) shown whole while the pointer is over it: a copy of it on a dark box of its own, as wide as the
@@ -106,6 +106,7 @@ public partial class TopPanel : Control
     // The log line and its hovered whole in colour, over the plain Label (kept, its text clear, for the hover and the
     // measuring).
     private readonly RichTextLabel _logRich = LogRichText.Make("LogEntryColoured"), _expandedRich = LogRichText.Make("ExpandedColoured");
+    private readonly Panel _expandedBack = new() { Name = "ExpandedColouredBack" };
     // IgnoreSize: otherwise a TextureRect can't be smaller than its texture, so after a narrower relayout it kept the old
     // width and stretched the new picture (the sections drifted away from the keys).
     private readonly TextureRect _backing = new()
@@ -171,7 +172,14 @@ public partial class TopPanel : Control
         _expandedRich.MouseFilter = MouseFilterEnum.Ignore;
         _expandedRich.Visible = false;
         _expandedRich.ZIndex = 10;
+        // Its box on a panel of its own behind it: a box of the label's own would cover the glow layers behind its text.
+        _expandedBack.MouseFilter = MouseFilterEnum.Ignore;
+        _expandedBack.Visible = false;
+        _expandedBack.ZIndex = 10;
+        AddChild(_expandedBack);
         AddChild(_expandedRich);
+        _expandedRich.Resized += () => { _expandedBack.Position = _expandedRich.Position; _expandedBack.Size = _expandedRich.Size; };
+        _expandedRich.VisibilityChanged += () => _expandedBack.Visible = _expandedRich.Visible;
         Restyle();
         Relayout();
     }
@@ -256,12 +264,12 @@ public partial class TopPanel : Control
     {
         LabelSettings settings = _logLine.LabelSettings;
         _logLine.Text = settings is null ? _logText : LogBreaks.FirstLine(_logText, settings.Font, settings.FontSize, _logLine.Size.X);
-        _logRich.Text = LogRichText.BbCode(LogSegments, new[] { _logLine.Text }, MoreLook);
+        LogRichText.SetText(_logRich, LogSegments, new[] { _logLine.Text }, MoreLook);
     }
 
     private const int LogOutline = 3;
     private IReadOnlyList<LogSegment> LogSegments => _logSegments ?? LogRichText.Single(_logText, _logColour, new Color(0, 0, 0, 0.85f));
-    private LogSegment MoreLook => new(LogBreaks.More, IconArt.PowerPurple, Colors.White); // the " …" after a cut-short line
+    private LogSegment MoreLook => new(LogBreaks.More, LogRichText.Readable(IconArt.PowerPurple), LogRichText.Stroke); // the " …" after a cut-short line
 
     // The hovered line whole, if it is cut short (nothing otherwise): the message on one longer line; the log record
     // in the log line's width, broken onto more lines (LogBreaks.Lines), the first where the log line is.
@@ -299,10 +307,17 @@ public partial class TopPanel : Control
         {
             // The log record in colour.
             _expanded.Visible = false;
-            _expandedRich.AddThemeStyleboxOverride("normal", box);
-            _expandedRich.Text = LogRichText.BbCode(LogSegments, lines, MoreLook);
+            _expandedBack.AddThemeStyleboxOverride("panel", box);
+            _expandedRich.AddThemeStyleboxOverride("normal", new StyleBoxEmpty
+            {
+                ContentMarginLeft = box.ContentMarginLeft, ContentMarginRight = box.ContentMarginRight,
+                ContentMarginTop = box.ContentMarginTop, ContentMarginBottom = box.ContentMarginBottom,
+            });
+            LogRichText.SetText(_expandedRich, LogSegments, lines, MoreLook);
             _expandedRich.Position = line.Position - new Vector2(padX, padY);
             _expandedRich.Size = new Vector2(width + 2 * padX + 4 + 2 * LogOutline, 0); // as tall as its lines
+            _expandedBack.Position = _expandedRich.Position;
+            _expandedBack.Size = _expandedRich.Size;
             _expandedRich.Visible = true;
             return;
         }

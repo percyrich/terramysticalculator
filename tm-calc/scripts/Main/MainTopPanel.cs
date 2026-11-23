@@ -159,19 +159,30 @@ public partial class Main
         return parts;
     }
 
-    // A log line in colour: each part in the colour of the faction it is about, with a stroke round its letters (black
-    // round light colours and brown, white round dark ones); what is nobody's, and the " · " between parts, in the power
-    // purple.
+    private static readonly Color BlackGlow = new("c8ccd0"); // the blurred stroke round the black faction's text
+
+    // A player colour in the log: Readable, with three tuned by eye.
+    private static Color LogColour(PlayerColour colour) => colour switch
+    {
+        PlayerColour.Black => Art.PieceColour(colour),
+        PlayerColour.Red => new Color("ff5a4a"),
+        PlayerColour.Brown => LogRichText.Readable(Art.PieceColour(colour), tinted: 0.5f),
+        _ => LogRichText.Readable(Art.PieceColour(colour)),
+    };
+
+    // A log line in colour: each part in the colour of the faction it is about, made readable on the dark log
+    // (LogRichText.Readable: dark ones lightened), with a black stroke; what is nobody's, and the " · " between parts,
+    // in the power purple (lightened to lavender).
     private IReadOnlyList<LogSegment> LogSegments(IReadOnlyList<GameLog.LogPart> parts)
     {
         GameState state = _history.Current;
         LogSegment Look(string text, Faction? faction)
         {
-            if (faction is not Faction f)
-                return new LogSegment(text, IconArt.PowerPurple, LogStroke(IconArt.PowerPurple, null));
-            PlayerColour colour = state.IsInGame(f) ? state[f].Colour : Factions.ColourOf(f);
-            Color fill = Art.PieceColour(colour);
-            return new LogSegment(text, fill, LogStroke(fill, colour));
+            PlayerColour? colour = faction is Faction f ? state.IsInGame(f) ? state[f].Colour : Factions.ColourOf(f) : null;
+            Color fill = colour is PlayerColour c ? LogColour(c) : LogRichText.Readable(IconArt.PowerPurple);
+            // Black: the black stroke every faction has, and a blurred grey glow outside it (starting at the letters'
+            // edge, the glow ran into them and looked drawn over them).
+            return new LogSegment(text, fill, LogRichText.Stroke, colour == PlayerColour.Black ? BlackGlow : null);
         }
         var segments = new List<LogSegment>();
         for (var i = 0; i < parts.Count; i++)
@@ -183,8 +194,6 @@ public partial class Main
         return segments;
     }
 
-    private static Color LogStroke(Color fill, PlayerColour? colour) =>
-        colour == PlayerColour.Brown || fill.Luminance > 0.5f ? Colors.Black : Colors.White;
 
     // The keys, the latest record, and the whole log while it is open (from RenderHistory).
     private void RenderTopPanel()

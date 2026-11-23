@@ -29,12 +29,12 @@ public partial class TopPanelLog : Control
     [Signal] public delegate void JumpRequestedEventHandler(int index);
 
     public float RowHeight { get; set; } = 34;
-    public int FontSize { get; set; } = 24; // (coloured text with a stroke wants it a little bigger)
+    public int FontSize { get; set; } = 26; // (coloured text with a stroke wants it bigger; 22 → 24 → 26)
     public int ButtonSize { get; set; } = 26;
     public float Embolden { get; set; } = -0.3f;       // the rows' weight (the default font is semibold)
     public float CurrentEmbolden { get; set; } = 0.3f; // the latest record played
     public Color TextColour { get; set; } = new("e4ebf1");
-    public Color PrefixColour { get; set; } = IconArt.PowerPurple;       // a row's number and "(Alternate)"
+    public Color PrefixColour { get; set; } = LogRichText.Readable(IconArt.PowerPurple); // a row's number and "(Alternate)"
     public float RedoOpacity { get; set; } = 0.45f;                    // a row to be redone (and slanted)
     public float OtherOpacity { get; set; } = 0.6f;                    // a row on another line (the notes)
     public float IndentWidth { get; set; } = 30;
@@ -149,7 +149,7 @@ public partial class TopPanelLog : Control
             string prefix = (shown.Opens ? "(Alternate) " : "") + (shown.Number is int number ? $"{number}. " : "");
             var segments = new List<LogSegment>();
             if (prefix.Length > 0)
-                segments.Add(new LogSegment(prefix, PrefixColour, Colors.White));
+                segments.Add(new LogSegment(prefix, PrefixColour, LogRichText.Stroke));
             segments.AddRange(shown.Segments ?? LogRichText.Single(shown.Text, TextColour, dark));
             string whole = LogRichText.Plain(segments);
             Font rowFont = shown.State switch
@@ -167,7 +167,7 @@ public partial class TopPanelLog : Control
             {
                 A = shown.State switch { RowState.Later => RedoOpacity, RowState.Other => OtherOpacity, _ => 1f },
             };
-            text.Text = LogRichText.BbCode(segments, new[] { whole }, segments[0]);
+            LogRichText.SetText(text, segments, new[] { whole }, segments[0]);
             // Too long for the row: a new line before a " · " (or between words), the row growing to hold them.
             float laidOut = -1;
             text.Resized += () =>
@@ -176,7 +176,7 @@ public partial class TopPanelLog : Control
                 if (Mathf.IsEqualApprox(width, laidOut) || width <= 0)
                     return;
                 laidOut = width;
-                text.Text = LogRichText.BbCode(segments, LogBreaks.Lines(whole, rowFont, FontSize, width), segments[0]);
+                LogRichText.SetText(text, segments, LogBreaks.Lines(whole, rowFont, FontSize, width), segments[0]);
             };
             line.AddChild(text);
             _rows.AddChild(row);
