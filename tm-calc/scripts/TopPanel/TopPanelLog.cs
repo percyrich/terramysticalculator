@@ -31,8 +31,8 @@ public partial class TopPanelLog : Control
     public float RowHeight { get; set; } = 34;
     public int FontSize { get; set; } = 26; // (coloured text with a stroke wants it bigger; 22 → 24 → 26)
     public int ButtonSize { get; set; } = 26;
-    public float Embolden { get; set; } = -0.3f;       // the rows' weight (the default font is semibold)
-    public float CurrentEmbolden { get; set; } = 0.3f; // the latest record played
+    public float Embolden { get; set; } = 0f;        // the rows' weight (the default font is semibold)
+    public float CurrentEmbolden { get; set; } = 0f; // the latest record played (its row lit instead)
     public Color TextColour { get; set; } = new("e4ebf1");
     public Color PrefixColour { get; set; } = LogRichText.Readable(IconArt.PowerPurple); // a row's number and "(Alternate)"
     public float RedoOpacity { get; set; } = 0.45f;                    // a row to be redone (and slanted)
@@ -149,7 +149,8 @@ public partial class TopPanelLog : Control
             string prefix = (shown.Opens ? "(Alternate) " : "") + (shown.Number is int number ? $"{number}. " : "");
             var segments = new List<LogSegment>();
             if (prefix.Length > 0)
-                segments.Add(new LogSegment(prefix, PrefixColour, LogRichText.Stroke));
+                segments.Add(new LogSegment(prefix, PrefixColour, LogRichText.Stroke,
+                    shown.Segments?.Select(s => s.Glow).FirstOrDefault(g => g is not null))); // glowing as the text does
             segments.AddRange(shown.Segments ?? LogRichText.Single(shown.Text, TextColour, dark));
             string whole = LogRichText.Plain(segments);
             Font rowFont = shown.State switch

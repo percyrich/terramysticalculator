@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using Godot;
 
@@ -94,8 +95,8 @@ public partial class TopPanel : Control
     private float _shownWidth = 880, _panelScale = 0.6f;
     private const float LogHeight = 600; // panel pixels (doubled 2026-11-24: more of the log at once)
     private Color _frame = IconArt.PowerPurple, _messageColour = TopPanelArt.MessageColour, _logColour = TopPanelArt.LogColour;
-    private const int MessageFontSize = 25, LogFontSize = 24; // (the log line: 22 → 24 with the coloured text)
-    private const float MessageEmbolden = 0f, LogEmbolden = -0.3f; // the default font is semibold; the log lighter (regular weight)
+    private const int MessageFontSize = 25, LogFontSize = 26; // (the log line: 22 → 24 → 26 with the coloured text)
+    private const float MessageEmbolden = 0f, LogEmbolden = 0f; // the default font is semibold (the log as it is)
     private bool _messageItalic;
     // A line cut short (…) shown whole while the pointer is over it: a copy of it on a dark box of its own, as wide as the
     // text needs, over whatever is to its right.
@@ -267,9 +268,11 @@ public partial class TopPanel : Control
         LogRichText.SetText(_logRich, LogSegments, new[] { _logLine.Text }, MoreLook);
     }
 
-    private const int LogOutline = 3;
+    private const int LogOutline = 4;
     private IReadOnlyList<LogSegment> LogSegments => _logSegments ?? LogRichText.Single(_logText, _logColour, new Color(0, 0, 0, 0.85f));
-    private LogSegment MoreLook => new(LogBreaks.More, LogRichText.Readable(IconArt.PowerPurple), LogRichText.Stroke); // the " …" after a cut-short line
+    // The " …" after a cut-short line: lavender, glowing as the text does.
+    private LogSegment MoreLook => new(LogBreaks.More, LogRichText.Readable(IconArt.PowerPurple), LogRichText.Stroke,
+        _logSegments?.Select(s => s.Glow).FirstOrDefault(g => g is not null));
 
     // The hovered line whole, if it is cut short (nothing otherwise): the message on one longer line; the log record
     // in the log line's width, broken onto more lines (LogBreaks.Lines), the first where the log line is.

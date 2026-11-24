@@ -110,9 +110,8 @@ public static class LogRichText
 
     // The blurred stroke: copies of the text behind the label, each with only the Glow segments, wider and fainter
     // outwards (outline size, opacity), so together they fade off softly. The sizes are beyond the label's own stroke
-    // (the black one every faction has), so the glow starts outside it: started at the letters' edge, it ran into
-    // them and looked drawn over them at the log's size (Andrew 2026-11-24).
-    public static readonly (int Outline, float Opacity)[] GlowLayers = { (3, 0.8f), (4, 0.5f), (6, 0.3f), (8, 0.2f) };
+    // (the black one every faction has).
+    public static readonly (int Outline, float Opacity)[] GlowLayers = { (8, 0.8f), (12, 0.5f), (14, 0.35f), (16, 0.2f) }; // Log Font Lab, 2026-11-24
 
     // Shows the text on the label, with its glow layers (made the first time a glow is wanted, hidden when none is).
     public static void SetText(RichTextLabel label, IReadOnlyList<LogSegment> segments, IReadOnlyList<string> lines, LogSegment extra)
