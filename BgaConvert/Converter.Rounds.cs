@@ -14,7 +14,7 @@ public sealed partial class Converter
     // f's own turn ends first if f has already acted (f again after everyone else has passed).
     private void EnsureActive(Faction f, bool action, Note n)
     {
-        ResolveOffers(); // the offers are part of the action: answered before its rewards and the next move (Andrew 2026-11-23)
+        ResolveOffers(); // the offers are part of the action: answered before its rewards and the next move
         if (S.Phase == Phase.RoundEndSpades)
             FinishRoundEndSpades(n);
         for (var guard = 0; guard < 12 && !_stopped; guard++)

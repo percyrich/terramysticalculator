@@ -209,8 +209,8 @@ public class TownTests
     [Fact]
     public void A_favours_step_onto_10_uses_the_key_of_the_town_it_makes_at_once()
     {
-        // Andrew 2026-11-22 (as BGA, 931629591 #359): Fire 8, no key; the temple's favour is Fire +2 (towns need 6),
-        // which makes the town; its key is used at once, with the top step's power, before the token is taken.
+        // Fire 8, no key; the temple's favour is Fire +2 (towns need 6), which makes the town;
+        // its key is used at once, with the top step's power, before the token is taken.
         var six = With(Play(SoloStart), (5, PieceKind.TradingPost), (4, PieceKind.Dwelling), (6, PieceKind.Dwelling), (17, PieceKind.TradingPost));
         six = six.WithPlayer(six[G] with { TrackSteps = six[G].TrackSteps.SetItem((int)Track.Fire, 8), FavoursOwed = 1 }) with { ActionTaken = true };
         Assert.Empty(Rules.FormableTowns(six, G));

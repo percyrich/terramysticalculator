@@ -132,7 +132,7 @@ public static partial class Rules
     // spent, and only one player may be on it; without both, the climb stops one short (TM).
     // Steps beyond the top are lost. Track power rewards are separate (TrackRewards).
     // Without a key, in the player's own action, with a town still to be formed: the key that town brings is used at
-    // once (KeysBorrowed; Andrew 2026-11-22, as BGA: "is founding a Town this turn and can use the key immediately",
+    // once (KeysBorrowed; as BGA: "is founding a Town this turn and can use the key immediately",
     // 854471936 #404), so the top step's power comes now. Not during a town's own rewards (mayBorrow false): one town
     // is finished before the next begins.
     private static GameState ClimbTrack(GameState state, Faction faction, Track track, int steps, List<GameEvent> events, out int after,

@@ -268,7 +268,7 @@ public static partial class Rules
             return MoveResult.Rejected(state, $"The {Name(move.Player)} are not in the game.");
         var player = state[move.Player];
         var before = StartingVictoryPoints(player);
-        var after = before + move.Delta; // a high bid can take it below 0 (Andrew 2026-11-22)
+        var after = before + move.Delta; // a high bid can take it below 0
         if (after == before)
             return MoveResult.Rejected(state, "Nothing to change.");
         return MoveResult.Ok(state.WithPlayer(player with { VictoryPoints = after - Config.StartingVictoryPoints }));

@@ -37,7 +37,7 @@ public static partial class Rules
         return MoveResult.Ok(next, events, warnings);
     }
 
-    // The stronghold's power and tokens, a reward after the action (Andrew 2026-11-23): taken when the player chooses, once
+    // The stronghold's power and tokens, a reward after the action: taken when the player chooses, once
     // the action's power offers are answered, before, between or after the other rewards and conversions (as on BGA:
     // after the town and a conversion in 241070597, before the town in 717052298); at the latest at End turn.
     private static MoveResult ApplyTakeHeldPower(GameState state, TakeHeldPower move)

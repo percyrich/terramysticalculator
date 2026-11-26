@@ -26,7 +26,7 @@ public static partial class Rules
     }
 
     // Rewards after the action (a favour, a town, the stronghold's held power) wait for the power offers from it: those
-    // are part of the action (Andrew 2026-11-23).
+    // are part of the action.
     private static MoveResult? CheckOffersAnswered(GameState state) =>
         state.PowerOffers.Count > 0
             ? MoveResult.Rejected(state, $"Waiting for the {Name(state.PowerOffers[0].Player)} to accept or decline power.")
@@ -70,8 +70,8 @@ public static partial class Rules
 
     // For free actions (conversions, burning): any time during your own turn, before or after your action, but not in
     // the middle of it (e.g. between a transform and the dwelling built there) nor while power offers from it wait. The
-    // rewards after the action don't stop them, before, between or after them (MidAction's rewardsAllowed; Andrew
-    // 2026-11-22/23; as on BGA: 931629591 #359, 4 power to coins between the favour and the town).
+    // rewards after the action don't stop them, before, between or after them (MidAction's rewardsAllowed; 
+    // as on BGA: 931629591 #359, 4 power to coins between the favour and the town).
     private static MoveResult? CheckFreeAction(GameState state, Faction player)
     {
         if (CheckTurn(state, player) is { } refusal)
@@ -91,7 +91,7 @@ public static partial class Rules
     // or null if the action is complete (or none has begun). endingTurn: worded for End turn.
     // rewardsAllowed: the rewards after the action don't count (free actions): a favour still to take, a town still to be
     // formed, the Halflings' stronghold spades (RewardSpades) and the dwelling after them, the Riverwalkers' free bridges
-    // (BridgesOptional). Power offers from the action still do: they are part of it (Andrew 2026-11-23).
+    // (BridgesOptional). Power offers from the action still do: they are part of it.
     private static MoveResult? MidAction(GameState state, Faction player, bool endingTurn, bool rewardsAllowed = false)
     {
         var p = state[player];

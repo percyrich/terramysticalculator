@@ -190,7 +190,7 @@ public static partial class Rules
             Faction.Cultists => GainVictoryPoints(state, faction, Config.CultistsStrongholdVictoryPoints, events,
                 new PointsArea.OnHex(hex), new PointsArea.OnHex(hex)),
             // A reward after the action: held (PowerHeld) until the Alchemists take it (TakeHeldPower), at the latest at
-            // End turn (Andrew 2026-11-23).
+            // End turn.
             Faction.Alchemists => state.WithPlayer(state[faction] with { PowerHeld = state[faction].PowerHeld + Config.AlchemistsStrongholdPower }),
             Faction.Darklings => state.WithPlayer(state[faction] with { PriestExchangesLeft = Config.DarklingsPriestExchange }),
             Faction.Mermaids => FreeShippingUpgrade(state, faction, new PointsArea.OnHex(hex), events, warnings),

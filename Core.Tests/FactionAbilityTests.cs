@@ -319,7 +319,7 @@ public class FactionAbilityTests
         Assert.True(Rules.Apply(spent, new BuildOnSpadedHex(new Piece(H, PieceKind.Dwelling, 2), 4)).Accepted);
     }
 
-    // Andrew 2026-11-23: the stronghold's spades are a reward after the action, so conversions may come between them.
+    // The stronghold's spades are a reward after the action, so conversions may come between them.
     [Fact]
     public void The_Halflings_may_convert_between_their_stronghold_spades()
     {
@@ -449,7 +449,7 @@ public class FactionAbilityTests
 
         Assert.Equal("Waiting for the Witches to accept or decline power.", Assert.Single(Rules.Apply(built, new TakeHeldPower(Al)).Issues).Message);
 
-        // Andrew 2026-11-23: a reward after the action, taken when the Alchemists choose (241070597: after a conversion).
+        // A reward after the action, taken when the Alchemists choose (241070597: after a conversion).
         var answered = PlayFrom(built, Decline(W));
         Assert.Equal(s[Al].Power, answered[Al].Power);
         Assert.Equal(Config.AlchemistsStrongholdPower, answered[Al].PowerHeld);
@@ -460,7 +460,7 @@ public class FactionAbilityTests
         Assert.Equal(taken[Al].Power, PlayFrom(answered, End(Al))[Al].Power); // not taken: at End turn
     }
 
-    // Andrew 2026-11-23: the power offers are part of the action; its rewards (a favour, a town, the held power) wait.
+    // The power offers are part of the action; its rewards (a favour, a town, the held power) wait.
     [Fact]
     public void Rewards_after_the_action_wait_for_its_power_offers()
     {
