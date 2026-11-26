@@ -11,9 +11,12 @@ config_version=5
 [application]
 
 config/name="TMCalc"
+config/description="A calculator, replay, and analysis tool for games in the Terra Mystica family."
+config/version="1.0.0"
 run/main_scene="uid://cj3glsutridvd"
 config/features=PackedStringArray("4.7", "C#", "Mobile")
-config/icon="res://icon.svg"
+boot_splash/show_image=false
+config/icon="uid://5c48uv5xov85"
 
 [display]
 
