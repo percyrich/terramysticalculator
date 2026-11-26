@@ -17,6 +17,11 @@ namespace TMCalc;
 //     octagon again) cancels.
 //   The Shapeshifters' token offer: their power bowl III lit purple with a glint; clicking it pays 1 VP for a token
 //     there, any other click declines.
+//   Setting up a game in progress (OnSetupWheelPress, from MainModes.OnModeInput): the selected faction's wheel
+//     clicked opens it (Riverwalkers, Shapeshifters, Geologists). The Riverwalkers' priests on it are lit: one clicked
+//     goes back to their supply (EditWheel), the wheel staying open. The Shapeshifters' terrains their home may move
+//     to are lit: one clicked moves it there (EditHome) and the wheel closes. Any other click closes the wheel (and,
+//     off the wheel, is then handled as usual); the Geologists' stays open for clicks on it (EditRock).
 public partial class Main
 {
     private Terrain? _shiftTarget;    // the terrain chosen for the Shapeshifters' new home, before the price
@@ -91,6 +96,31 @@ public partial class Main
         return false;
     }
 
+    // Setting up: a press (left or right) with the selected faction's wheel open, or on it. True if used up here. (A
+    // lit circle on the open wheel is taken by the wheel itself first: OnPanelTerrainChosen.)
+    private bool OnSetupWheelPress(GameState state, Vector2 mouse, bool right)
+    {
+        if (_lookWheel is not null)
+        {
+            bool over = _lookWheel.IsOverTerrainWheel(mouse);
+            if (over && _lookWheel.ShownFaction == Faction.Geologists)
+                return true; // stays open for more rocks
+            _lookWheel = null;
+            Render(animate: true);
+            if (over)
+                GetViewport().SetInputAsHandled();
+            return over;
+        }
+        if (right || state.ActivePlayer is not Faction selected
+            || selected is not (Faction.Riverwalkers or Faction.Shapeshifters or Faction.Geologists)
+            || PanelFor(selected) is not PlayerPanel panel || panel.IsCompact || !panel.IsOverTerrainWheel(mouse))
+            return false;
+        GetViewport().SetInputAsHandled();
+        _lookWheel = panel;
+        Render(animate: true);
+        return true;
+    }
+
     // The shift's octagon clicked: if it could be used now (either way of paying), the price chips appear.
     private void StartShift(Faction faction, BonusActionId bonus)
     {
@@ -145,6 +175,17 @@ public partial class Main
         GameState state = _history.Current;
         if (OnRockChosen(faction, terrain)) // the Geologists (MainFanFactionsEmberGeologistsChangelings.cs)
             return;
+        if (state.Phase == Phase.SettingUp && _lookWheel == panel)
+        {
+            if (faction == Faction.Riverwalkers)
+                Submit(new EditWheel(faction, terrain)); // its priest back to the supply; the wheel stays open
+            else if (faction == Faction.Shapeshifters)
+            {
+                _lookWheel = null; // the wheel closes on the new home
+                Submit(new EditHome(faction, terrain));
+            }
+            return;
+        }
         if (state.IsInGame(faction) && state[faction].PriestChoicesOwed > 0)
         {
             Submit(new ChoosePriest(faction, terrain)); // unlocks it: its priest goes to the supply
@@ -175,10 +216,18 @@ public partial class Main
         bool shifting = _bonus is { } bonus && bonus.Faction == faction && bonus.Bonus.Action == BonusAction.Shapeshift;
         bool polestar = PolestarShiftOpen(state, faction); // the Spectral Polestar's free move, as the shift's wheel
         bool choosingPriest = player.PriestChoicesOwed > 0;
+        bool setup = state.Phase == Phase.SettingUp;
+        if (setup && _lookWheel == panel && (state.ActivePlayer != faction || panel.IsCompact))
+            _lookWheel = null; // another faction selected: the wheel closes
         if (panel.TerrainWheelTop is Terrain top)
         {
             panel.SetTerrainWheelOpen(choosingPriest || shifting || polestar || _lookWheel == panel, animate);
-            if (choosingPriest)
+            if (setup && _lookWheel == panel && faction == Faction.Riverwalkers)
+                panel.TerrainWheel.ShowChoices(top, player.WheelPriests.Select(locked => locked.Terrain)); // a priest clicked: to the supply
+            else if (setup && _lookWheel == panel && faction == Faction.Shapeshifters)
+                panel.TerrainWheel.ShowChoices(top, Terrains.Wheel.Where(terrain =>
+                    Rules.Apply(state, new EditHome(faction, terrain)).Accepted)); // not another faction's, not the home itself
+            else if (choosingPriest)
                 panel.TerrainWheel.ShowChoices(top, player.WheelPriests.Select(locked => locked.Terrain),
                     terrain => state.IsOthersHome(faction, terrain) ? HighlightArt.Colour.Purple : HighlightArt.Colour.White,
                     terrain =>

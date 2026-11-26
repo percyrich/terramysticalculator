@@ -106,7 +106,8 @@ public partial class TopPanel : Control
     private IReadOnlyList<LogSegment> _logSegments; // its colours (null: all in LogColour)
     // The log line and its hovered whole in colour, over the plain Label (kept, its text clear, for the hover and the
     // measuring).
-    private readonly RichTextLabel _logRich = LogRichText.Make("LogEntryColoured"), _expandedRich = LogRichText.Make("ExpandedColoured");
+    private readonly LogTextView _logRich = new() { Name = "LogEntryColoured", CentreVertically = true },
+        _expandedRich = new() { Name = "ExpandedColoured" };
     private readonly Panel _expandedBack = new() { Name = "ExpandedColouredBack" };
     // IgnoreSize: otherwise a TextureRect can't be smaller than its texture, so after a narrower relayout it kept the old
     // width and stretched the new picture (the sections drifted away from the keys).
@@ -166,9 +167,6 @@ public partial class TopPanel : Control
         AddChild(Log);
         AddChild(_expanded);
         _logRich.MouseFilter = MouseFilterEnum.Ignore;
-        _logRich.FitContent = false;
-        _logRich.AutowrapMode = TextServer.AutowrapMode.Off;
-        _logRich.VerticalAlignment = VerticalAlignment.Center;
         AddChild(_logRich);
         _expandedRich.MouseFilter = MouseFilterEnum.Ignore;
         _expandedRich.Visible = false;
@@ -179,7 +177,6 @@ public partial class TopPanel : Control
         _expandedBack.ZIndex = 10;
         AddChild(_expandedBack);
         AddChild(_expandedRich);
-        _expandedRich.Resized += () => { _expandedBack.Position = _expandedRich.Position; _expandedBack.Size = _expandedRich.Size; };
         _expandedRich.VisibilityChanged += () => _expandedBack.Visible = _expandedRich.Visible;
         Restyle();
         Relayout();
@@ -242,8 +239,8 @@ public partial class TopPanel : Control
     {
         _message.LabelSettings = Text(MessageFontSize, MessageEmbolden, _messageColour, _messageItalic);
         _logLine.LabelSettings = Text(LogFontSize, LogEmbolden, Colors.Transparent, false); // drawn by _logRich
-        LogRichText.Style(_logRich, _logLine.LabelSettings.Font, LogFontSize, LogOutline);
-        LogRichText.Style(_expandedRich, _logLine.LabelSettings.Font, LogFontSize, LogOutline);
+        _logRich.Style(_logLine.LabelSettings.Font, LogFontSize, LogOutline);
+        _expandedRich.Style(_logLine.LabelSettings.Font, LogFontSize, LogOutline);
         RefreshLogLine();
         RefreshExpanded();
     }
@@ -265,7 +262,7 @@ public partial class TopPanel : Control
     {
         LabelSettings settings = _logLine.LabelSettings;
         _logLine.Text = settings is null ? _logText : LogBreaks.FirstLine(_logText, settings.Font, settings.FontSize, _logLine.Size.X);
-        LogRichText.SetText(_logRich, LogSegments, new[] { _logLine.Text }, MoreLook);
+        _logRich.Show(LogSegments, new[] { _logLine.Text }, MoreLook);
     }
 
     private const int LogOutline = 4;
@@ -311,16 +308,12 @@ public partial class TopPanel : Control
             // The log record in colour.
             _expanded.Visible = false;
             _expandedBack.AddThemeStyleboxOverride("panel", box);
-            _expandedRich.AddThemeStyleboxOverride("normal", new StyleBoxEmpty
-            {
-                ContentMarginLeft = box.ContentMarginLeft, ContentMarginRight = box.ContentMarginRight,
-                ContentMarginTop = box.ContentMarginTop, ContentMarginBottom = box.ContentMarginBottom,
-            });
-            LogRichText.SetText(_expandedRich, LogSegments, lines, MoreLook);
-            _expandedRich.Position = line.Position - new Vector2(padX, padY);
-            _expandedRich.Size = new Vector2(width + 2 * padX + 4 + 2 * LogOutline, 0); // as tall as its lines
-            _expandedBack.Position = _expandedRich.Position;
-            _expandedBack.Size = _expandedRich.Size;
+            _expandedRich.Show(LogSegments, lines, MoreLook);
+            float textHeight = lines.Count * _expandedRich.LineHeight;
+            _expandedBack.Position = line.Position - new Vector2(padX, padY);
+            _expandedBack.Size = new Vector2(width + 2 * padX + 4 + LogOutline, textHeight + 2 * padTop);
+            _expandedRich.Position = _expandedBack.Position + new Vector2(padX, padTop); // its first line where the log line's is
+            _expandedRich.Size = new Vector2(width + 4 + LogOutline, textHeight);
             _expandedRich.Visible = true;
             return;
         }

@@ -96,13 +96,12 @@ public partial class TopPanelLog : Control
         _scroll.Size = list.Size - new Vector2(8, 8);
     }
 
+    // Only the rows that changed are made again (a row is kept while its index and everything shown in it are the
+    // same).
+    private readonly List<(Row Row, Control Node)> _built = new();
+
     private void Rebuild()
     {
-        foreach (Node row in _rows.GetChildren())
-        {
-            _rows.RemoveChild(row);
-            row.QueueFree();
-        }
         Font font = ThemeDB.FallbackFont;
         Font Variation(float embolden, bool slanted) => new FontVariation
         {
@@ -113,79 +112,95 @@ public partial class TopPanelLog : Control
         _plainFont ??= Variation(Embolden, false);
         _currentFont ??= Variation(CurrentEmbolden, false);
         _redoFont ??= Variation(Embolden, true);
-        var dark = new Color(0, 0, 0, 0.85f);
-        Control current = null;
+
         int count = _shown.Count;
-        for (var n = 0; n < count; n++) // the most recent first, unless Ascending
+        var nodes = new Control[count];
+        for (var i = 0; i < count && i < _built.Count; i++)
+            if (SameRow(_built[i].Row, _shown[i]) && IsInstanceValid(_built[i].Node))
+                nodes[i] = _built[i].Node;
+        var kept = new HashSet<Control>(nodes.Where(node => node is not null));
+        foreach (var (_, node) in _built)
+            if (node is not null && IsInstanceValid(node) && !kept.Contains(node))
+            {
+                _rows.RemoveChild(node);
+                node.QueueFree();
+            }
+        _built.Clear();
+        Control current = null;
+        for (var i = 0; i < count; i++)
         {
-            int i = Ascending ? n : count - 1 - n;
-            Row shown = _shown[i];
-            bool here = shown.State == RowState.Here;
-            var style = new StyleBoxFlat { BgColor = here ? CurrentFill : Colors.Transparent, ContentMarginLeft = 4, ContentMarginRight = 8 };
-            style.SetCornerRadiusAll(6);
-            var row = new PanelContainer { CustomMinimumSize = new Vector2(0, RowHeight), SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Pass };
-            row.AddThemeStyleboxOverride("panel", style);
-            var line = new HBoxContainer { MouseFilter = MouseFilterEnum.Pass };
-            line.AddThemeConstantOverride("separation", 6);
-            row.AddChild(line);
-            if (shown.Depth > 0)
-                line.AddChild(new Control { CustomMinimumSize = new Vector2(shown.Depth * IndentWidth, 0), MouseFilter = MouseFilterEnum.Pass });
-
-            int index = i;
-            bool marked = shown.Bookmarked;
-            TextureButton bookmark = RowButton(TopPanelArt.RowIcon(TopPanelArt.RowIconKind.Bookmark, marked, ButtonSize),
-                shown.Locked ? "Session start: always bookmarked" : marked ? "Remove this bookmark" : "Bookmark this point");
-            bookmark.Disabled = shown.Locked;
-            bookmark.Pressed += () => EmitSignal(SignalName.BookmarkToggled, index);
-            line.AddChild(bookmark);
-            TextureButton jump = RowButton(TopPanelArt.RowIcon(TopPanelArt.RowIconKind.Jump, false, ButtonSize),
-                here ? "The game is here" : shown.Opens && shown.State == RowState.Other ? "Take this line" : "Go to this point");
-            jump.Disabled = here;
-            if (here)
-                jump.Modulate = new Color(1, 1, 1, 0.35f);
-            jump.Pressed += () => EmitSignal(SignalName.JumpRequested, index);
-            line.AddChild(jump);
-
-            string prefix = (shown.Opens ? "(Alternate) " : "") + (shown.Number is int number ? $"{number}. " : "");
-            var segments = new List<LogSegment>();
-            if (prefix.Length > 0)
-                segments.Add(new LogSegment(prefix, PrefixColour, LogRichText.Stroke,
-                    shown.Segments?.Select(s => s.Glow).FirstOrDefault(g => g is not null))); // glowing as the text does
-            segments.AddRange(shown.Segments ?? LogRichText.Single(shown.Text, TextColour, dark));
-            string whole = LogRichText.Plain(segments);
-            Font rowFont = shown.State switch
-            {
-                RowState.Here => _currentFont,
-                RowState.Later => _redoFont,
-                _ => _plainFont,
-            };
-            RichTextLabel text = LogRichText.Make();
-            LogRichText.Style(text, rowFont, FontSize);
-            text.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            text.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-            text.TooltipText = whole;
-            text.Modulate = Colors.White with
-            {
-                A = shown.State switch { RowState.Later => RedoOpacity, RowState.Other => OtherOpacity, _ => 1f },
-            };
-            LogRichText.SetText(text, segments, new[] { whole }, segments[0]);
-            // Too long for the row: a new line before a " · " (or between words), the row growing to hold them.
-            float laidOut = -1;
-            text.Resized += () =>
-            {
-                float width = text.Size.X - 2 * LogRichText.OutlineSize;
-                if (Mathf.IsEqualApprox(width, laidOut) || width <= 0)
-                    return;
-                laidOut = width;
-                LogRichText.SetText(text, segments, LogBreaks.Lines(whole, rowFont, FontSize, width), segments[0]);
-            };
-            line.AddChild(text);
-            _rows.AddChild(row);
-            if (here)
-                current = row;
+            nodes[i] ??= MakeRow(i, _shown[i]);
+            if (nodes[i].GetParent() != _rows)
+                _rows.AddChild(nodes[i]);
+            _built.Add((_shown[i], nodes[i]));
+            if (_shown[i].State == RowState.Here)
+                current = nodes[i];
         }
+        for (var n = 0; n < count; n++) // the most recent first, unless Ascending
+            _rows.MoveChild(nodes[Ascending ? n : count - 1 - n], n);
         _scrollTo = current; // once the rows are laid out (next frame)
         SetProcess(current is not null);
+    }
+
+    private static bool SameRow(Row a, Row b) =>
+        a with { Segments = null } == b with { Segments = null }
+        && (a.Segments is null ? b.Segments is null : b.Segments is not null && a.Segments.SequenceEqual(b.Segments));
+
+    private Control MakeRow(int index, Row shown)
+    {
+        var dark = new Color(0, 0, 0, 0.85f);
+        bool here = shown.State == RowState.Here;
+        var style = new StyleBoxFlat { BgColor = here ? CurrentFill : Colors.Transparent, ContentMarginLeft = 4, ContentMarginRight = 8 };
+        style.SetCornerRadiusAll(6);
+        var row = new PanelContainer { CustomMinimumSize = new Vector2(0, RowHeight), SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Pass };
+        row.AddThemeStyleboxOverride("panel", style);
+        var line = new HBoxContainer { MouseFilter = MouseFilterEnum.Pass };
+        line.AddThemeConstantOverride("separation", 6);
+        row.AddChild(line);
+        if (shown.Depth > 0)
+            line.AddChild(new Control { CustomMinimumSize = new Vector2(shown.Depth * IndentWidth, 0), MouseFilter = MouseFilterEnum.Pass });
+
+        bool marked = shown.Bookmarked;
+        TextureButton bookmark = RowButton(TopPanelArt.RowIcon(TopPanelArt.RowIconKind.Bookmark, marked, ButtonSize),
+            shown.Locked ? "Session start: always bookmarked" : marked ? "Remove this bookmark" : "Bookmark this point");
+        bookmark.Disabled = shown.Locked;
+        bookmark.Pressed += () => EmitSignal(SignalName.BookmarkToggled, index);
+        line.AddChild(bookmark);
+        TextureButton jump = RowButton(TopPanelArt.RowIcon(TopPanelArt.RowIconKind.Jump, false, ButtonSize),
+            here ? "The game is here" : shown.Opens && shown.State == RowState.Other ? "Take this line" : "Go to this point");
+        jump.Disabled = here;
+        if (here)
+            jump.Modulate = new Color(1, 1, 1, 0.35f);
+        jump.Pressed += () => EmitSignal(SignalName.JumpRequested, index);
+        line.AddChild(jump);
+
+        string prefix = (shown.Opens ? "(Alternate) " : "") + (shown.Number is int number ? $"{number}. " : "");
+        var segments = new List<LogSegment>();
+        if (prefix.Length > 0)
+            segments.Add(new LogSegment(prefix, PrefixColour, LogRichText.Stroke,
+                shown.Segments?.Select(s => s.Glow).FirstOrDefault(g => g is not null))); // glowing as the text does
+        segments.AddRange(shown.Segments ?? LogRichText.Single(shown.Text, TextColour, dark));
+        Font rowFont = shown.State switch
+        {
+            RowState.Here => _currentFont,
+            RowState.Later => _redoFont,
+            _ => _plainFont,
+        };
+        // Too long for the row: a new line before a " · " (or between words), the row growing to hold them.
+        var text = new LogTextView
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+            TooltipText = LogRichText.Plain(segments),
+            Modulate = Colors.White with
+            {
+                A = shown.State switch { RowState.Later => RedoOpacity, RowState.Other => OtherOpacity, _ => 1f },
+            },
+        };
+        text.Style(rowFont, FontSize, LogRichText.OutlineSize);
+        text.Show(segments);
+        line.AddChild(text);
+        return row;
     }
 
     // A small icon button (TextureButton): the pointing hand, a little lighter under the pointer.

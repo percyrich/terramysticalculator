@@ -196,6 +196,8 @@ public partial class Main
             return false;
         if (IsOverTopPanel() || ScoreBadgeUnder(mouse) is not null || _wheel.Visible || _upgradeChoice is not null || AnyMenuOpen)
             return false; // the top panel, score badges and the wheel work as usual (OnPress)
+        if (setup && OnSetupWheelPress(state, mouse, right)) // a faction's terrain wheel (MainFireAndIce.cs)
+            return true;
 
         if (!right && (setup || state.IsPlanning) && DebtMarkerUnder(mouse) is Faction owing)
         {
